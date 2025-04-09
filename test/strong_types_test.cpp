@@ -180,6 +180,133 @@ static_assert([]
     Dummy d2{2.0f};
     return (d1 < d2) && (d1 != d2) && !(d1 > d2); }(), "ordering and comparison check");
 
+
+
+constexpr bool almost_equal(float a, float b, float epsilon = 0.001f)
+{
+    return (a - b < epsilon) && (b - a < epsilon);
+}
+struct Vec2
+{
+    float x, y;
+
+    constexpr Vec2 operator+(const Vec2 &o) const { return {x + o.x, y + o.y}; }
+    constexpr Vec2 operator-(const Vec2 &o) const { return {x - o.x, y - o.y}; }
+    constexpr Vec2 operator*(const Vec2 &o) const { return {x * o.x, y * o.y}; }
+    constexpr Vec2 operator/(const Vec2 &o) const
+    {
+        return {
+            o.x != 0.0f ? x / o.x : 0.0f,
+            o.y != 0.0f ? y / o.y : 0.0f};
+    }
+
+    constexpr float ratio() const
+    {
+        if (x == 0.0f)
+            return 0.0f;
+        return y / x;
+    }
+
+    constexpr Vec2 operator/(float scalar) const { return {x / scalar, y / scalar}; }
+    constexpr Vec2 operator*(float scalar) const { return {x * scalar, y * scalar}; }
+
+    constexpr Vec2 operator-() const { return {-x, -y}; }
+    constexpr bool operator==(const Vec2 &o) const
+    {
+        return almost_equal(x, o.x) && almost_equal(y, o.y);
+    }
+    constexpr std::partial_ordering operator<=>(const Vec2 &o) const
+    {
+        if (auto cmp = x <=> o.x; cmp != 0)
+            return cmp;
+        return y <=> o.y;
+    }
+};
+
+
+
+constexpr bool vec2_equal(const Vec2 &a, const Vec2 &b, float epsilon = 0.001f)
+{
+    return almost_equal(a.x, b.x, epsilon) && almost_equal(a.y, b.y, epsilon);
+}
+
+struct DisplacementTag
+{
+};
+using Displacement = strong_types::Strong<Vec2, DisplacementTag>;
+
+template <>
+struct strong_types::tag_sum_result<DisplacementTag, DisplacementTag>
+{
+    using type = DisplacementTag;
+};
+
+template <>
+struct strong_types::tag_difference_result<DisplacementTag, DisplacementTag>
+{
+    using type = DisplacementTag;
+};
+
+template <>
+struct strong_types::tag_product_result<DisplacementTag, void>
+{
+    using type = DisplacementTag; // scaling
+};
+
+template <>
+struct strong_types::tag_product_result<void, DisplacementTag>
+{
+    using type = DisplacementTag;
+};
+
+template <>
+struct strong_types::tag_quotient_result<DisplacementTag, void>
+{
+    using type = DisplacementTag; // scalar div
+};
+
+template <>
+struct strong_types::scalar_division_result<Displacement, float>
+{
+    using type = Displacement;
+};
+
+static_assert([]
+              {
+    constexpr Displacement d1{Vec2{3.0f, 4.0f}};
+    constexpr Displacement d2{Vec2{1.0f, 2.0f}};
+
+    constexpr auto sum = d1 + d2;
+    constexpr auto diff = d1 - d2;
+    constexpr auto scaled = d1 * 2.0f;
+    constexpr auto halved = d1 / 2.0f;
+
+    return sum.get() == Vec2{4.0f, 6.0f} &&
+           diff.get() == Vec2{2.0f, 2.0f} &&
+           scaled.get() == Vec2{6.0f, 8.0f} &&
+           halved.get() == Vec2{1.5f, 2.0f};
+
+
+            }(), "displacement math test failed");
+
+static_assert([]
+              {
+    constexpr Displacement big{Vec2{1e30f, 1e-30f}};
+    constexpr auto div = big / 10.0f;
+    return vec2_equal(div.get(), Vec2{1e29f, 1e-31f}); }(), "high-magnitude division test failed");
+
+static_assert([]
+              {
+                  constexpr Displacement a{Vec2{1.000001f, 2.000001f}};
+                  constexpr Displacement b{Vec2{1.000002f, 2.000002f}};
+                  return (a == b); // fail-safe: `Vec2::operator==` uses epsilon
+              }(),
+              "approximate equality violated");
+
+constexpr Displacement d{Vec2{1e30f, 1e-30f}};
+constexpr auto result = d / 1e10f;
+static_assert(vec2_equal(result.get(), Vec2{1e20f, 1e-40f}), "oopsie underflow?");
+
 int main()
 {
     return 0;
