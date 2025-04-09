@@ -6,7 +6,7 @@
 #include <utility>
 
 template <typename T>
-concept Scalar = std::is_arithmetic_v<T>;
+concept Scalar = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 
 template <typename>
 inline constexpr bool always_false_v = false;
@@ -17,13 +17,20 @@ namespace strong_types
     concept Arithmetic = requires(T a, T b) {
         { a + b } -> std::convertible_to<T>;
         { a - b } -> std::convertible_to<T>;
-        { a * 1.0f } -> std::convertible_to<T>;
-        { a / 1.0f } -> std::convertible_to<T>;
+        { a * b } -> std::convertible_to<T>;
+        { a / b } -> std::convertible_to<T>;
+        { -a } -> std::convertible_to<T>;
+        { a == b } -> std::convertible_to<bool>;
+        { a <=> b };
     };
 
-    template <Arithmetic T, typename Tag>
+    template <typename T, typename Tag>
     struct Strong
     {
+        static_assert(std::is_default_constructible_v<T>, "need default ctor, genius");
+        static_assert(std::copy_constructible<T>, "copy constructor required for strong types");
+        static_assert(Arithmetic<T>, "your struct is dumb. go teach it math first.");
+
         using value_type = T;
         using tag_type = Tag;
 
@@ -55,6 +62,16 @@ namespace strong_types
         T value_;
     };
 
+    // ---- scalar division result trait ----
+    template <typename StrongType, Scalar ScalarType>
+    struct scalar_division_result
+    {
+        using type = StrongType; // default: keep same type
+    };
+
+    template <typename StrongType, Scalar ScalarType>
+    using scalar_div_result_t = typename scalar_division_result<StrongType, ScalarType>::type;
+
     // ---- tag-level mapping traits ----
 
     template <typename LTag, typename RTag>
@@ -65,8 +82,6 @@ namespace strong_types
     struct tag_product_result;
     template <typename LTag, typename RTag>
     struct tag_quotient_result;
-
-    // ---- result type computation ----
 
     // Generic fallback: only works for Strong types
     template <typename LHS, typename RHS>
@@ -179,19 +194,41 @@ namespace strong_types
     template <typename T, typename TAG, Scalar S>
     [[nodiscard]] constexpr auto operator*(const Strong<T, TAG> &lhs, S scalar)
     {
-        return Strong<T, TAG>{lhs.get() * static_cast<T>(scalar)};
+        if constexpr (std::is_arithmetic_v<T>)
+        {
+            return Strong<T, TAG>{lhs.get() * static_cast<T>(scalar)};
+        }
+        else
+        {
+            return Strong<T, TAG>{lhs.get() * scalar}; // assumes T supports T * Scalar
+        }
     }
 
     template <typename T, typename TAG, Scalar S>
     [[nodiscard]] constexpr auto operator*(S scalar, const Strong<T, TAG> &rhs)
     {
-        return Strong<T, TAG>{static_cast<T>(scalar) * rhs.get()};
+        if constexpr (std::is_arithmetic_v<T>)
+        {
+            return Strong<T, TAG>{static_cast<T>(scalar) * rhs.get()};
+        }
+        else
+        {
+            return Strong<T, TAG>{scalar * rhs.get()}; // assumes Scalar * T works too
+        }
     }
 
     template <typename T, typename TAG, Scalar S>
     [[nodiscard]] constexpr auto operator/(const Strong<T, TAG> &lhs, S scalar)
+        -> scalar_div_result_t<Strong<T, TAG>, S>
     {
-        return Strong<T, TAG>{lhs.get() / static_cast<T>(scalar)};
+        if constexpr (std::is_arithmetic_v<T>)
+        {
+            return scalar_div_result_t<Strong<T, TAG>, S>{lhs.get() / static_cast<T>(scalar)};
+        }
+        else
+        {
+            return scalar_div_result_t<Strong<T, TAG>, S>{lhs.get() / scalar};
+        }
     }
 
     template <typename T, typename TAG, Scalar S>
@@ -225,8 +262,12 @@ namespace strong_types
         return lhs;
     }
 
+    // compound assignment for scalar division, only if scalar_div_result matches Strong<T, TAG>
     template <typename T, typename TAG, Scalar S>
-    constexpr Strong<T, TAG> &operator/=(Strong<T, TAG> &lhs, S scalar)
+    constexpr auto operator/=(Strong<T, TAG> &lhs, S scalar)
+        -> std::enable_if_t<
+            std::is_same_v<scalar_div_result_t<Strong<T, TAG>, S>, Strong<T, TAG>>,
+            Strong<T, TAG> &>
     {
         lhs = lhs / scalar;
         return lhs;
