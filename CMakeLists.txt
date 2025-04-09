@@ -9,9 +9,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Find dependencies
-find_package(fmt REQUIRED)
-
 # Runner library
 add_library(${PROJECT_NAME} INTERFACE)
 
@@ -61,7 +58,27 @@ install(
 
 # Test executable
 add_executable(${PROJECT_NAME}_test test/strong_types_test.cpp test/si_test.cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt)
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
+add_compile_options(${PROJECT_NAME}_test PRIVATE
+            -Wextra            # Enable extra warnings
+            -Wpedantic         # Enable pedantic warnings
+            -Werror            # Treat warnings as errors
+            # -Wstack-usage=4096 # Warn for large stack usage
+            -pedantic # Enable pedantic warnings
+            -Wconversion # Warn for implicit conversions
+            -Wsign-conversion # Warn for sign conversions
+            -Wnull-dereference # Warn for null dereferences
+            -Wdouble-promotion # Warn for implicit double promotions
+            -Wformat=2 # Warn for format errors
+            -Wduplicated-cond # Warn for duplicated conditions
+            -Wduplicated-branches # Warn for duplicated branches
+            -Wlogical-op # Warn for logical operations
+            -Wuseless-cast # Warn for useless casts
+            -Wshadow # Warn for shadowed variables
+            -Wuninitialized # Warn for uninitialized variables
+            -Wunreachable-code # Warn for unreachable code
+            -Wunused # Warn for unused variables
+)
 
 # Export the target
 install(
