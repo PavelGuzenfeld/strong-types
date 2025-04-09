@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>strong-types</name>
+  <version>0.1.0</version>
+  <description>Strong compile time type C++</description>
+  <maintainer email="pavelguzenfeld@gmail.com">Pavel Guzenfeld</maintainer>
+  <license>MIT</license>
+  <build_depend>libfmt-dev</build_depend>
+</package>
