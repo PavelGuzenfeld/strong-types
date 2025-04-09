@@ -1,86 +1,130 @@
 #pragma once
 
 #include "strong.hpp"
-#include "tag_traits.hpp"
 
 namespace strong_types
 {
 
-    // ---- tag -> internal type & Strong type mapping ----
+    // SI base + derived tags
+    struct LengthTag;
+    struct MassTag;
+    struct TimeTag;
+    struct AreaTag;
+    struct SpeedTag;
+    struct AccelerationTag;
+    struct ForceTag;
+    struct EnergyTag;
+    struct HertzTag;
+    struct CelsiusTag;
+    struct VoltTag;
+    struct RadianTag;
+    struct SteradianTag;
 
-    template <typename Tag>
-    struct tag_traits; // forward declaration for customization
+    // alias
+    template <typename T, typename Tag>
+    using unit_t = Strong<T, Tag>;
 
-    template <typename Tag>
-    using unit_t = Strong<typename strong_types::tag_traits<Tag>::value_type, Tag>;
+    // --- tag-level traits ---
+    template <typename L, typename R>
+    struct tag_sum_result;
+    template <typename L, typename R>
+    struct tag_difference_result;
+    template <typename L, typename R>
+    struct tag_product_result;
+    template <typename L, typename R>
+    struct tag_quotient_result;
 
-    // ---- literals using unit_t<T> ----
-    constexpr unit_t<LengthTag> operator"" _m(long double v) { return unit_t<LengthTag>{static_cast<typename tag_traits<LengthTag>::value_type>(v)}; }
-    constexpr unit_t<MassTag> operator"" _kg(long double v) { return unit_t<MassTag>{static_cast<typename tag_traits<MassTag>::value_type>(v)}; }
-    constexpr unit_t<TimeTag> operator"" _s(long double v) { return unit_t<TimeTag>{static_cast<typename tag_traits<TimeTag>::value_type>(v)}; }
-
-    constexpr unit_t<LengthTag> operator"" _m(unsigned long long v) { return unit_t<LengthTag>{static_cast<typename tag_traits<LengthTag>::value_type>(v)}; }
-    constexpr unit_t<MassTag> operator"" _kg(unsigned long long v) { return unit_t<MassTag>{static_cast<typename tag_traits<MassTag>::value_type>(v)}; }
-    constexpr unit_t<TimeTag> operator"" _s(unsigned long long v) { return unit_t<TimeTag>{static_cast<typename tag_traits<TimeTag>::value_type>(v)}; }
-
-
-// additive closure for all types
-#define DEFINE_ADD_SUB(Tag)                                    \
-    template <>                                                \
-    struct sum_result<unit_t<Tag>, unit_t<Tag>>        \
-    {                                                          \
-        using type = unit_t<Tag>;                          \
-    };                                                         \
-    template <>                                                \
-    struct difference_result<unit_t<Tag>, unit_t<Tag>> \
-    {                                                          \
-        using type = unit_t<Tag>;                          \
+    template <>
+    struct tag_quotient_result<void, TimeTag>
+    {
+        using type = HertzTag;
     };
 
-    DEFINE_ADD_SUB(LengthTag)
-    DEFINE_ADD_SUB(TimeTag)
-    DEFINE_ADD_SUB(SpeedTag)
-    DEFINE_ADD_SUB(AccelerationTag)
-    DEFINE_ADD_SUB(ForceTag)
-    DEFINE_ADD_SUB(EnergyTag)
+#define DEFINE_ADD_SUB(Tag)                \
+    template <>                            \
+    struct tag_sum_result<Tag, Tag>        \
+    {                                      \
+        using type = Tag;                  \
+    };                                     \
+    template <>                            \
+    struct tag_difference_result<Tag, Tag> \
+    {                                      \
+        using type = Tag;                  \
+    }
 
+    DEFINE_ADD_SUB(LengthTag);
+    DEFINE_ADD_SUB(TimeTag);
+    DEFINE_ADD_SUB(SpeedTag);
+    DEFINE_ADD_SUB(AccelerationTag);
+    DEFINE_ADD_SUB(ForceTag);
+    DEFINE_ADD_SUB(EnergyTag);
+    DEFINE_ADD_SUB(AreaTag);
+    DEFINE_ADD_SUB(HertzTag);
+    DEFINE_ADD_SUB(CelsiusTag);
+    DEFINE_ADD_SUB(VoltTag);
+    DEFINE_ADD_SUB(RadianTag);
+    DEFINE_ADD_SUB(SteradianTag);
 #undef DEFINE_ADD_SUB
 
+    // ---- tag-level product results ----
     template <>
-    struct quotient_result<unit_t<LengthTag>, unit_t<TimeTag>>
+    struct tag_product_result<LengthTag, LengthTag>
     {
-        using type = unit_t<SpeedTag>;
+        using type = AreaTag;
+    };
+    template <>
+    struct tag_product_result<SpeedTag, TimeTag>
+    {
+        using type = LengthTag;
+    };
+    template <>
+    struct tag_product_result<MassTag, AccelerationTag>
+    {
+        using type = ForceTag;
+    };
+    template <>
+    struct tag_product_result<ForceTag, LengthTag>
+    {
+        using type = EnergyTag;
     };
 
+    // commutative
     template <>
-    struct quotient_result<unit_t<SpeedTag>, unit_t<TimeTag>>
+    struct tag_product_result<TimeTag, SpeedTag>
     {
-        using type = unit_t<AccelerationTag>;
+        using type = LengthTag;
+    };
+    template <>
+    struct tag_product_result<AccelerationTag, MassTag>
+    {
+        using type = ForceTag;
+    };
+    template <>
+    struct tag_product_result<LengthTag, ForceTag>
+    {
+        using type = EnergyTag;
     };
 
+    // ---- tag-level quotient results ----
     template <>
-    struct product_result<unit_t<MassTag>, unit_t<AccelerationTag>>
+    struct tag_quotient_result<LengthTag, TimeTag>
     {
-        using type = unit_t<ForceTag>;
+        using type = SpeedTag;
     };
-
     template <>
-    struct product_result<unit_t<ForceTag>, unit_t<LengthTag>>
+    struct tag_quotient_result<SpeedTag, TimeTag>
     {
-        using type = unit_t<EnergyTag>;
+        using type = AccelerationTag;
     };
-
     template <>
-    struct product_result<unit_t<SpeedTag>, unit_t<TimeTag>>
+    struct tag_quotient_result<LengthTag, LengthTag>
     {
-        using type = unit_t<LengthTag>;
-    };
-
-    // scalar output
+        using type = void;
+    }; // scalar
     template <>
-    struct quotient_result<unit_t<LengthTag>, unit_t<LengthTag>>
+    struct tag_quotient_result<TimeTag, TimeTag>
     {
-        using type = typename tag_traits<LengthTag>::value_type;
-    };
+        using type = void;
+    }; // scalar
 
-}
+} // namespace strong_types

@@ -2,13 +2,19 @@
 
 using namespace strong_types;
 
-using Length = unit_t<LengthTag>;
-using Mass = unit_t<MassTag>;
-using Time = unit_t<TimeTag>;
-using Speed = unit_t<SpeedTag>;
-using Acceleration = unit_t<AccelerationTag>;
-using Force = unit_t<ForceTag>;
-using Energy = unit_t<EnergyTag>;
+using Length = unit_t<float, LengthTag>;
+using Mass = unit_t<float, MassTag>;
+using Time = unit_t<float, TimeTag>;
+using Speed = unit_t<float, SpeedTag>;
+using Acceleration = unit_t<float, AccelerationTag>;
+using Force = unit_t<float, ForceTag>;
+using Energy = unit_t<float, EnergyTag>;
+using Area = unit_t<float, AreaTag>;
+using Hertz = unit_t<float, HertzTag>;
+using Celsius = unit_t<float, CelsiusTag>;
+using Volt = unit_t<float, VoltTag>;
+using Radian = unit_t<float, RadianTag>;
+using Steradian = unit_t<float, SteradianTag>;
 
 static_assert([]
               {
@@ -31,14 +37,12 @@ static_assert([]
     constexpr float ratio = d1 / d2;
     return ratio == 0.5f; }(), "Length / Length = scalar ratio failed");
 
-// edge case: zero
 static_assert([]
               {
     constexpr Length d{0.0f};
     constexpr auto result = d * 123.456f;
     return result.get() == 0.0f; }(), "zero multiplication failed");
 
-// edge case: large values
 static_assert([]
               {
     constexpr Length d{1e30f};
@@ -47,7 +51,6 @@ static_assert([]
     constexpr float epsilon = 1e20f;
     return (result.get() > expected - epsilon) && (result.get() < expected + epsilon); }(), "large value division failed");
 
-// edge case: mixed scalar multiplication
 static_assert([]
               {
     constexpr Length d{3.0f};
@@ -55,15 +58,6 @@ static_assert([]
     constexpr auto y = d * 2U;
     constexpr auto z = d * 2.0;
     return x.get() == 6.0f && y.get() == 6.0f && z.get() == 6.0f; }(), "mixed scalar overloads failed");
-
-// BAD case: mismatched tag addition (should not compile, uncomment to verify)
-/*
-constexpr Time t1{5.0f};
-constexpr Length d1{10.0f};
-auto bad = t1 + d1; // error: no sum_result<Time, Length>
-*/
-
-// BAD case: divide by zero — won't fail at compile time but... kaboom at runtime if you try it
 
 static_assert([]
               {
@@ -95,7 +89,18 @@ static_assert([]
 
 static_assert([]
               {
-    constexpr auto d = 3.0_m;
-    constexpr auto t = 1.5_s;
-    constexpr auto v = d / t;
-    return v.get() == 2.0f; }(), "literals + speed failed");
+    constexpr Length l{4.0f};
+    constexpr Area a = l * l;
+    return a.get() == 16.0f; }(), "area = length * length failed");
+
+static_assert([]
+              {
+    constexpr Radian rad{3.14f};
+    constexpr Radian x = rad + rad;
+    return x.get() == 6.28f; }(), "radian addition failed");
+
+static_assert([]
+              {
+    constexpr Time t{0.5f};
+    constexpr Hertz hz = 1.0f / t;
+    return hz.get() == 2.0f; }(), "hz = 1 / time failed");
