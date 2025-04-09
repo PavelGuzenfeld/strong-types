@@ -57,7 +57,7 @@ install(
 )
 
 # Test executable
-add_executable(${PROJECT_NAME}_test test/strong_types_test.cpp test/si_test.cpp)
+add_executable(${PROJECT_NAME}_test test/strong_types_test.cpp test/si_test.cpp test/strong_aligned_array_test.cpp)
 target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
 add_compile_options(${PROJECT_NAME}_test PRIVATE
             -Wextra            # Enable extra warnings
@@ -67,7 +67,6 @@ add_compile_options(${PROJECT_NAME}_test PRIVATE
             -pedantic # Enable pedantic warnings
             -Wconversion # Warn for implicit conversions
             -Wsign-conversion # Warn for sign conversions
-            -Wnull-dereference # Warn for null dereferences
             -Wdouble-promotion # Warn for implicit double promotions
             -Wformat=2 # Warn for format errors
             -Wduplicated-cond # Warn for duplicated conditions
@@ -80,12 +79,12 @@ add_compile_options(${PROJECT_NAME}_test PRIVATE
             -Wunused # Warn for unused variables
 )
 
-# Export the target
-install(
-    TARGETS ${PROJECT_NAME}_test
-    EXPORT ${PROJECT_NAME}Targets
-    DESTINATION bin
-)
+# # Export the target
+# install(
+#     TARGETS ${PROJECT_NAME}_test
+#     EXPORT ${PROJECT_NAME}Targets
+#     DESTINATION bin
+# )
 
 # Handle "Manually-specified variables were not used by the project" warning.
 unset(CATKIN_INSTALL_INTO_PREFIX_ROOT)
