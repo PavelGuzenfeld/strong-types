@@ -1,4 +1,5 @@
 #include "strong-types/si.hpp"
+#include <cstdint> // for fixed width integer types
 
 using namespace strong_types;
 
@@ -104,3 +105,48 @@ static_assert([]
     constexpr Time t{0.5f};
     constexpr Hertz hz = 1.0f / t;
     return hz.get() == 2.0f; }(), "hz = 1 / time failed");
+
+using LengthI32 = unit_t<std::int32_t, LengthTag>;
+using TimeU64 = unit_t<std::uint64_t, TimeTag>;
+using SpeedD = unit_t<double, SpeedTag>;
+using EnergyD = unit_t<double, EnergyTag>;
+
+using LengthI32 = unit_t<std::int32_t, LengthTag>;
+using TimeU64 = unit_t<std::uint64_t, TimeTag>;
+using SpeedD = unit_t<double, SpeedTag>;
+using EnergyD = unit_t<double, EnergyTag>;
+
+static_assert([]
+            {
+    constexpr LengthI32 d{static_cast<std::int32_t>(300)};
+    constexpr TimeU64 t{static_cast<std::uint64_t>(20)};
+    constexpr SpeedD s{static_cast<double>(d.get()) / static_cast<double>(t.get())};
+    return s.get() == 15.0; }(), "✅ correct casting: int32_t / uint64_t -> double = SpeedD");
+
+static_assert([]
+              {
+    constexpr unit_t<std::uint16_t, TimeTag> t{static_cast<std::uint16_t>(4)};
+    constexpr auto raw = static_cast<int>(8) / static_cast<int>(t.get());
+    constexpr unit_t<std::uint16_t, HertzTag> hz{static_cast<std::uint16_t>(raw)};
+    return hz.get() == 2; }(), "✅ correct casting: scalar / strong<uint16_t> = strong<uint16_t>");
+
+static_assert([]
+              {
+    constexpr unit_t<std::int16_t, LengthTag> l{static_cast<std::int16_t>(5)};
+    constexpr auto raw = static_cast<int>(l.get()) * static_cast<int>(l.get());
+    constexpr unit_t<std::int16_t, AreaTag> a{static_cast<std::int16_t>(raw)};
+    return a.get() == 25; }(), "✅ correct casting: int16_t * int16_t = Area");
+
+static_assert([]
+              {
+    constexpr unit_t<double, ForceTag> f{3.5};
+    constexpr unit_t<double, LengthTag> d{2.0};
+    constexpr EnergyD e{f.get() * d.get()};
+    return e.get() == 7.0; }(), "✅ correct casting: double force * length = energy");
+
+static_assert([]
+              {
+    constexpr auto t = unit_t<std::int32_t, TimeTag>{static_cast<std::int32_t>(4)};
+    constexpr auto raw = static_cast<double>(8.0) / static_cast<double>(t.get());
+    constexpr unit_t<double, HertzTag> hz{raw};
+    return hz.get() == 2.0; }(), "✅ correct casting: scalar double / int32_t strong = double hertz");
