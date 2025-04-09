@@ -8,6 +8,9 @@
 template <typename T>
 concept Scalar = std::is_arithmetic_v<T>;
 
+template <typename>
+inline constexpr bool always_false_v = false;
+
 namespace strong_types
 {
     template <typename T>
@@ -24,7 +27,21 @@ namespace strong_types
         using value_type = T;
         using tag_type = Tag;
 
-        constexpr explicit Strong(T value) noexcept : value_(std::move(value)) {}
+        template <typename U>
+            requires std::same_as<std::remove_cvref_t<U>, T>
+        constexpr explicit Strong(U &&value) noexcept
+            : value_(std::forward<U>(value))
+        {
+        }
+
+        template <typename U>
+            requires(!std::same_as<std::remove_cvref_t<U>, T>)
+        Strong(U &&)
+        {
+            static_assert(always_false_v<U>,
+                          "🚫 invalid construction of strong_types::Strong<T, Tag> with a mismatched type.\n"
+                          "💡 try casting explicitly to T first to avoid narrowing conversions or implicit promotions.");
+        }
 
         constexpr explicit(false) Strong() noexcept
             requires std::default_initializable<T>
