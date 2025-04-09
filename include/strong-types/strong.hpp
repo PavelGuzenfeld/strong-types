@@ -177,6 +177,14 @@ namespace strong_types
         return Strong<T, TAG>{lhs.get() / static_cast<T>(scalar)};
     }
 
+    template <typename T, typename TAG, Scalar S>
+    [[nodiscard]] constexpr auto operator/(S scalar, const Strong<T, TAG> &rhs)
+        -> typename quotient_result<Strong<S, void>, Strong<T, TAG>>::type
+    {
+        return typename quotient_result<Strong<S, void>, Strong<T, TAG>>::type{
+            static_cast<T>(scalar) / rhs.get()};
+    }
+
     // ---- compound assignment ----
 
     template <typename T, typename TAG>
