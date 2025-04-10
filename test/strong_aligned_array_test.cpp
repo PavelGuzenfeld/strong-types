@@ -189,3 +189,48 @@ static_assert([]
 
     constexpr auto sum = a + b;
     return sum == expected; }(), "aligned array brace init or transform failed");
+
+static_assert([]
+              {
+    constexpr Vec a{8.0f, 6.0f, 4.0f, 2.0f, 1.0f, 3.0f, 5.0f, 7.0f};
+    constexpr Vec b{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f};
+
+    constexpr auto add = a + b;
+    constexpr auto sub = a - b;
+    constexpr auto mul = a * b;
+    constexpr auto div = a / b;
+
+    constexpr Vec expected_add{9.0f, 8.0f, 7.0f, 6.0f, 6.0f, 9.0f, 12.0f, 15.0f};
+    constexpr Vec expected_sub{7.0f, 4.0f, 1.0f, -2.0f, -4.0f, -3.0f, -2.0f, -1.0f};
+    constexpr Vec expected_mul{8.0f, 12.0f, 12.0f, 8.0f, 5.0f, 18.0f, 35.0f, 56.0f};
+    constexpr Vec expected_div{
+        8.0f / 1.0f,
+        6.0f / 2.0f,
+        4.0f / 3.0f,
+        2.0f / 4.0f,
+        1.0f / 5.0f,
+        3.0f / 6.0f,
+        5.0f / 7.0f,
+        7.0f / 8.0f
+    };
+
+    static_assert(add == expected_add, "operator+ failed");
+    static_assert(sub == expected_sub, "operator- failed");
+    static_assert(mul == expected_mul, "operator* failed");
+    static_assert(div == expected_div, "operator/ failed");
+
+    constexpr auto neg = -a;
+    constexpr Vec expected_neg{-8.0f, -6.0f, -4.0f, -2.0f, -1.0f, -3.0f, -5.0f, -7.0f};
+    static_assert(neg == expected_neg, "negation failed");
+
+    constexpr auto scaled = a * 2.0f;
+    constexpr Vec expected_scaled{16.0f, 12.0f, 8.0f, 4.0f, 2.0f, 6.0f, 10.0f, 14.0f};
+    static_assert(scaled == expected_scaled, "scalar multiplication failed");
+
+    constexpr auto halved = a / 2.0f;
+    constexpr Vec expected_halved{4.0f, 3.0f, 2.0f, 1.0f, 0.5f, 1.5f, 2.5f, 3.5f};
+    static_assert(halved == expected_halved, "scalar division failed");
+
+    static_assert((a <=> a) == std::strong_ordering::equal, "self comparison failed");
+    static_assert(a == a, "equality operator failed");
+    return true; }(), "full aligned array op coverage failed");
