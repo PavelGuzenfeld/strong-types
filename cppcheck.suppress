@@ -1,0 +1,13 @@
+unusedFunction
+syntaxError
+shadowFunction
+shadowVariable
+passedByValue
+unusedPrivateFunction
+constVariable
+unreadVariable
+
+# Third-party library suppressions (uncomment and adjust paths as needed):
+# noExplicitConstructor:/opt/ros/humble/include/moodycamel/concurrentqueue.h
+# uninitMemberVar:/opt/ros/humble/include/moodycamel/concurrentqueue.h
+# *:/path/to/vendor/library/*

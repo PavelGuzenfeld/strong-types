@@ -1,0 +1,16 @@
+# naming-exceptions.txt — Additional file/directory naming exception patterns
+# One regex per line. Blank lines and lines starting with # are ignored.
+# These patterns are matched against each path segment (directory or filename without extension).
+#
+# Examples:
+# ^vendor$              # vendor directory
+# ^third_party$         # third-party directory
+# ^generated$           # generated code directory
+# ^Gems$                # O3DE Gem directories
+# ^Code$                # O3DE Code directories
+
+# Package name (hyphenated by convention)
+^strong-types$
+
+# Standard CMake files (PascalCase required by CMake)
+^CMakePresets\.json$

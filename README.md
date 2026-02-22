@@ -1,5 +1,7 @@
 # 🧠 strong-types
 
+[![Release](https://img.shields.io/github/v/release/PavelGuzenfeld/strong-types?label=version&color=blue)](https://github.com/PavelGuzenfeld/strong-types/releases)
+
 > strong types for C++23 that don’t suck. use types like `Distance`, `Velocity`, or even `Strong<Vec2, PositionTag>` and get actual compiler-verified semantics.
 
 ## 🔧 features
