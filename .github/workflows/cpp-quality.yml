@@ -1,0 +1,31 @@
+name: C++ Quality
+
+on:
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  quality:
+    uses: PavelGuzenfeld/standard/.github/workflows/cpp-quality.yml@main
+    with:
+      docker_image: ghcr.io/pavelguzenfeld/strong-types:latest
+      pre_analysis_script: .github/scripts/pre-analysis.sh
+      compile_commands_path: build
+      source_mount: /workspace/src
+      enable_clang_format: true
+      enable_file_naming: true
+      file_naming_exceptions: naming_exceptions.txt
+      cppcheck_suppress: cppcheck.suppress
+      cppcheck_std: c++23
+      enforce_doctest: true
+      ban_cout: true
+      ban_new: true
+      enable_flawfinder: true
+      enable_iwyu: true
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      pull-requests: write
+      security-events: write

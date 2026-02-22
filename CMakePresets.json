@@ -1,0 +1,88 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "debug-asan",
+      "displayName": "Debug + ASan/UBSan",
+      "description": "Debug build with AddressSanitizer and UndefinedBehaviorSanitizer",
+      "binaryDir": "${sourceDir}/build-asan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
+      "name": "release-asan",
+      "displayName": "Release + ASan/UBSan",
+      "description": "Release build with sanitizers — catches UB the optimizer exploits",
+      "binaryDir": "${sourceDir}/build-release-asan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
+      "name": "debug-tsan",
+      "displayName": "Debug + TSan",
+      "description": "Debug build with ThreadSanitizer (mutually exclusive with ASan)",
+      "binaryDir": "${sourceDir}/build-tsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread"
+      }
+    },
+    {
+      "name": "release-hardened",
+      "displayName": "Release + Hardening",
+      "description": "Release build with production hardening flags",
+      "binaryDir": "${sourceDir}/build-hardened",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS": "-D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fstack-protector-strong -fstack-clash-protection -fcf-protection=full -fPIE",
+        "CMAKE_CXX_FLAGS": "-D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fstack-protector-strong -fstack-clash-protection -fcf-protection=full -fPIE",
+        "CMAKE_EXE_LINKER_FLAGS": "-pie -Wl,-z,relro,-z,now",
+        "CMAKE_SHARED_LINKER_FLAGS": "-Wl,-z,relro,-z,now"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Plain debug build",
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Optimised release build",
+      "binaryDir": "${sourceDir}/build-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug-asan",       "configurePreset": "debug-asan" },
+    { "name": "release-asan",     "configurePreset": "release-asan" },
+    { "name": "debug-tsan",       "configurePreset": "debug-tsan" },
+    { "name": "release-hardened", "configurePreset": "release-hardened" },
+    { "name": "debug",            "configurePreset": "debug" },
+    { "name": "release",          "configurePreset": "release" }
+  ]
+}
