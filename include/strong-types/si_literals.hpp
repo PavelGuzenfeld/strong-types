@@ -33,6 +33,7 @@ STRONG_TYPES_DEFINE_UDL(W, PowerTag)
 STRONG_TYPES_DEFINE_UDL(Pa, PressureTag)
 STRONG_TYPES_DEFINE_UDL(rps, AngularVelocityTag)
 STRONG_TYPES_DEFINE_UDL(m3, VolumeTag)
+STRONG_TYPES_DEFINE_UDL(Nm, TorqueTag)
 
 #undef STRONG_TYPES_DEFINE_UDL
 // NOLINTEND(cppcoreguidelines-macro-usage)

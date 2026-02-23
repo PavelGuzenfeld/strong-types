@@ -107,6 +107,11 @@ struct tag_suffix<DensityTag>
 {
     static constexpr std::string_view value = "kg/m3";
 };
+template <>
+struct tag_suffix<TorqueTag>
+{
+    static constexpr std::string_view value = "Nm";
+};
 
 // ---- scaled unit -> suffix override ----
 
