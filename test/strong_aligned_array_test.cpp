@@ -106,7 +106,7 @@ constexpr Vec make_seq(float start, float step = 1.0f)
     Vec out{};
     for (std::size_t i = 0; i < 8; ++i)
     {
-        out[i] = start + i * step;
+        out[i] = start + static_cast<float>(i) * step;
     }
     return out;
 }

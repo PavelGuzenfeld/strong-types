@@ -129,6 +129,11 @@ struct scaled_suffix<TimeTag, std::micro>
 {
     static constexpr std::string_view value = "us";
 };
+template <>
+struct scaled_suffix<TimeTag, std::nano>
+{
+    static constexpr std::string_view value = "ns";
+};
 
 // Mass scales (base = kg)
 template <>

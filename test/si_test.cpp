@@ -118,7 +118,7 @@ using EnergyD = unit_t<double, EnergyTag>;
 
 static_assert([]
             {
-    constexpr LengthI32 d{static_cast<std::int32_t>(300)};
+    constexpr LengthI32 d{std::int32_t{300}};
     constexpr TimeU64 t{static_cast<std::uint64_t>(20)};
     constexpr SpeedD s{static_cast<double>(d.get()) / static_cast<double>(t.get())};
     return s.get() == 15.0; }(), "✅ correct casting: int32_t / uint64_t -> double = SpeedD");
@@ -126,7 +126,7 @@ static_assert([]
 static_assert([]
               {
     constexpr unit_t<std::uint16_t, TimeTag> t{static_cast<std::uint16_t>(4)};
-    constexpr auto raw = static_cast<int>(8) / static_cast<int>(t.get());
+    constexpr auto raw = 8 / static_cast<int>(t.get());
     constexpr unit_t<std::uint16_t, HertzTag> hz{static_cast<std::uint16_t>(raw)};
     return hz.get() == 2; }(), "✅ correct casting: scalar / strong<uint16_t> = strong<uint16_t>");
 
@@ -146,7 +146,7 @@ static_assert([]
 
 static_assert([]
               {
-    constexpr auto t = unit_t<std::int32_t, TimeTag>{static_cast<std::int32_t>(4)};
-    constexpr auto raw = static_cast<double>(8.0) / static_cast<double>(t.get());
+    constexpr auto t = unit_t<std::int32_t, TimeTag>{std::int32_t{4}};
+    constexpr auto raw = 8.0 / static_cast<double>(t.get());
     constexpr unit_t<double, HertzTag> hz{raw};
     return hz.get() == 2.0; }(), "✅ correct casting: scalar double / int32_t strong = double hertz");
