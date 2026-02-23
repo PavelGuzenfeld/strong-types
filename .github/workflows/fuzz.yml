@@ -6,13 +6,15 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions: read-all
+
 jobs:
   fuzz:
     runs-on: ubuntu-24.04
     name: "Clang 18 / libFuzzer"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install libc++
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libc++-18-dev libc++abi-18-dev
@@ -38,7 +40,7 @@ jobs:
 
       - name: Upload corpus
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fuzz-corpus
           path: corpus/
