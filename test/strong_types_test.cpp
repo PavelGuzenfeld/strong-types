@@ -1,3 +1,5 @@
+// NOLINTBEGIN(readability-magic-numbers,readability-identifier-length) — test file
+
 #include "strong-types/strong.hpp"
 
 namespace strong_types
@@ -306,6 +308,8 @@ static_assert([]
 constexpr Displacement d{Vec2{1e30f, 1e-30f}};
 constexpr auto result = d / 1e10f;
 static_assert(vec2_equal(result.get(), Vec2{1e20f, 1e-40f}), "oopsie underflow?");
+
+// NOLINTEND(readability-magic-numbers,readability-identifier-length)
 
 int main()
 {

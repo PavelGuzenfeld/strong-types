@@ -89,4 +89,27 @@ TEST_CASE("ScaledUnit with unknown ratio falls back to tag suffix")
     CHECK(fmt::format("{}", CustomScale{7.0}) == "7 m");
 }
 
+// ---- QuantityPoint formatting ----
+
+TEST_CASE("QuantityPoint formats with suffix")
+{
+    struct TestOrigin {};
+    using QP = QuantityPoint<double, LengthTag, TestOrigin>;
+    CHECK(fmt::format("{}", QP{42.5}) == "42.5 m");
+    CHECK(fmt::format("{:.1f}", QP{3.14159}) == "3.1 m");
+}
+
+TEST_CASE("QuantityPoint with void origin formats same as with origin")
+{
+    using QP = QuantityPoint<double, LengthTag>;
+    CHECK(fmt::format("{}", QP{100.0}) == "100 m");
+}
+
+TEST_CASE("QuantityPoint with unknown tag has no suffix")
+{
+    struct CustomTag;
+    using QP = QuantityPoint<double, CustomTag>;
+    CHECK(fmt::format("{}", QP{42.0}) == "42");
+}
+
 // NOLINTEND(readability-magic-numbers)

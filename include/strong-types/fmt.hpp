@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quantity_point.hpp"
 #include "si.hpp"
 #include "si_scaled.hpp"
 
@@ -234,6 +235,24 @@ struct fmt::formatter<strong_types::ScaledUnit<T, Tag, Ratio>> : fmt::formatter<
     {
         fmt::formatter<T>::format(val.get(), ctx);
         constexpr auto suffix = strong_types::scaled_suffix<Tag, Ratio>::value;
+        if constexpr (!suffix.empty())
+        {
+            fmt::format_to(ctx.out(), " {}", suffix);
+        }
+        return ctx.out();
+    }
+};
+
+// ---- fmt::formatter for QuantityPoint<T, Tag, Origin> ----
+
+template <typename T, typename Tag, typename Origin>
+struct fmt::formatter<strong_types::QuantityPoint<T, Tag, Origin>> : fmt::formatter<T>
+{
+    template <typename FormatContext>
+    auto format(const strong_types::QuantityPoint<T, Tag, Origin> &val, FormatContext &ctx) const
+    {
+        fmt::formatter<T>::format(val.get(), ctx);
+        constexpr auto suffix = strong_types::tag_suffix<Tag>::value;
         if constexpr (!suffix.empty())
         {
             fmt::format_to(ctx.out(), " {}", suffix);
