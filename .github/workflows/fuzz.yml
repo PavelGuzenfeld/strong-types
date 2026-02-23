@@ -14,11 +14,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install libc++
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libc++-18-dev libc++abi-18-dev
+
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_FUZZING=ON
         env:
           CC: clang-18
           CXX: clang++-18
+          CXXFLAGS: -stdlib=libc++
+          LDFLAGS: -stdlib=libc++
 
       - name: Build
         run: cmake --build build

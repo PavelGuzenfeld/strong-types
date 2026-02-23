@@ -18,12 +18,12 @@ jobs:
           # GCC 14
           - { os: ubuntu-24.04, cc: gcc-14, cxx: g++-14, build_type: Debug }
           - { os: ubuntu-24.04, cc: gcc-14, cxx: g++-14, build_type: Release }
-          # Clang 17
-          - { os: ubuntu-24.04, cc: clang-17, cxx: clang++-17, build_type: Debug }
-          - { os: ubuntu-24.04, cc: clang-17, cxx: clang++-17, build_type: Release }
+          # Clang 17 (libc++ for full C++23 <expected> support)
+          - { os: ubuntu-24.04, cc: clang-17, cxx: clang++-17, build_type: Debug, stdlib: libc++ }
+          - { os: ubuntu-24.04, cc: clang-17, cxx: clang++-17, build_type: Release, stdlib: libc++ }
           # Clang 18
-          - { os: ubuntu-24.04, cc: clang-18, cxx: clang++-18, build_type: Debug }
-          - { os: ubuntu-24.04, cc: clang-18, cxx: clang++-18, build_type: Release }
+          - { os: ubuntu-24.04, cc: clang-18, cxx: clang++-18, build_type: Debug, stdlib: libc++ }
+          - { os: ubuntu-24.04, cc: clang-18, cxx: clang++-18, build_type: Release, stdlib: libc++ }
           # MSVC
           - { os: windows-latest, cc: cl, cxx: cl, build_type: Debug }
           - { os: windows-latest, cc: cl, cxx: cl, build_type: Release }
@@ -34,12 +34,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install libc++
+        if: matrix.stdlib == 'libc++'
+        run: |
+          LLVM_VER=$(echo "${{ matrix.cc }}" | grep -oP '\d+')
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libc++-${LLVM_VER}-dev libc++abi-${LLVM_VER}-dev
+
       - name: Configure (Unix)
         if: runner.os != 'Windows'
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTING=ON
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
+          CXXFLAGS: ${{ matrix.stdlib == 'libc++' && '-stdlib=libc++' || '' }}
+          LDFLAGS: ${{ matrix.stdlib == 'libc++' && '-stdlib=libc++' || '' }}
 
       - name: Configure (MSVC)
         if: runner.os == 'Windows'
