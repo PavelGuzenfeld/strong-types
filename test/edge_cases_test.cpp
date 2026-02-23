@@ -325,23 +325,23 @@ static_assert(
     }(),
     "from_base round-trip: ms -> s -> ms");
 
-// ---- checked_cast ----
+// ---- scale_cast ----
 
 static_assert(
     [] {
         constexpr auto km = Kilometers<double>{5.0};
-        constexpr auto mm = checked_cast<Millimeters<double>>(km);
+        constexpr auto mm = scale_cast<Millimeters<double>>(km);
         return mm.get() == 5000000.0;
     }(),
-    "checked_cast: 5km -> 5000000mm");
+    "scale_cast: 5km -> 5000000mm");
 
 static_assert(
     [] {
         constexpr auto hr = Hours<double>{2.0};
-        constexpr auto mins = checked_cast<Minutes<double>>(hr);
+        constexpr auto mins = scale_cast<Minutes<double>>(hr);
         return mins.get() == 120.0;
     }(),
-    "checked_cast: 2hr -> 120min");
+    "scale_cast: 2hr -> 120min");
 
 // ---- KilometersPerHour conversions ----
 
@@ -412,9 +412,56 @@ static_assert(
 static_assert(
     [] {
         constexpr auto day = Days<double>{1.0};
-        constexpr auto hr = checked_cast<Hours<double>>(day);
+        constexpr auto hr = scale_cast<Hours<double>>(day);
         return hr.get() == 24.0;
     }(),
     "1 day = 24 hours");
+
+// ---- Torque dimensional algebra (P = torque * angular_velocity) ----
+
+static_assert(
+    [] {
+        constexpr auto torque = 50.0_Nm;
+        constexpr auto omega = 10.0_rps;
+        constexpr auto power = torque * omega;
+        return power.get() == 500.0;
+    }(),
+    "power = torque * angular_velocity");
+
+static_assert(
+    [] {
+        constexpr auto power = 500.0_W;
+        constexpr auto omega = 10.0_rps;
+        constexpr auto torque = power / omega;
+        return torque.get() == 50.0;
+    }(),
+    "torque = power / angular_velocity");
+
+static_assert(
+    [] {
+        constexpr auto power = 500.0_W;
+        constexpr auto torque = 50.0_Nm;
+        constexpr auto omega = power / torque;
+        return omega.get() == 10.0;
+    }(),
+    "angular_velocity = power / torque");
+
+static_assert(
+    [] {
+        constexpr auto t1 = 20.0_Nm;
+        constexpr auto t2 = 30.0_Nm;
+        constexpr auto sum = t1 + t2;
+        return sum.get() == 50.0;
+    }(),
+    "torque addition");
+
+static_assert(
+    [] {
+        constexpr auto t1 = 100.0_Nm;
+        constexpr auto t2 = 25.0_Nm;
+        constexpr double ratio = t1 / t2;
+        return ratio == 4.0;
+    }(),
+    "torque / torque = scalar");
 
 // NOLINTEND(readability-magic-numbers,readability-identifier-length)

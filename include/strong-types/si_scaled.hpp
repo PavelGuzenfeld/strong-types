@@ -87,11 +87,11 @@ template <typename TargetScaled, typename T, typename Tag>
         base.get() * static_cast<T>(R::den) / static_cast<T>(R::num))};
 }
 
-// ---- checked_cast: ScaledUnit → ScaledUnit (explicit scale conversion) ----
+// ---- scale_cast: ScaledUnit → ScaledUnit (explicit scale conversion) ----
 
 template <typename TargetScaled, typename T, typename Tag, typename R>
     requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag>
-[[nodiscard]] constexpr TargetScaled checked_cast(ScaledUnit<T, Tag, R> from) noexcept
+[[nodiscard]] constexpr TargetScaled scale_cast(ScaledUnit<T, Tag, R> from) noexcept
 {
     using TargetT = typename TargetScaled::value_type;
     using TargetR = typename TargetScaled::ratio_type;

@@ -24,6 +24,7 @@ namespace strong_types
     struct AngularVelocityTag;
     struct VolumeTag;
     struct DensityTag;
+    struct TorqueTag;
 
     // alias
     template <typename T, typename Tag>
@@ -75,6 +76,7 @@ namespace strong_types
     DEFINE_ADD_SUB(AngularVelocityTag);
     DEFINE_ADD_SUB(VolumeTag);
     DEFINE_ADD_SUB(DensityTag);
+    DEFINE_ADD_SUB(TorqueTag);
 #undef DEFINE_ADD_SUB
 
     // ---- same-tag quotient → scalar ----
@@ -102,6 +104,7 @@ namespace strong_types
     DEFINE_SELF_QUOTIENT(AngularVelocityTag);
     DEFINE_SELF_QUOTIENT(VolumeTag);
     DEFINE_SELF_QUOTIENT(DensityTag);
+    DEFINE_SELF_QUOTIENT(TorqueTag);
 #undef DEFINE_SELF_QUOTIENT
 
     // ---- tag-level product results ----
@@ -150,6 +153,11 @@ namespace strong_types
     {
         using type = MassTag;
     };
+    template <>
+    struct tag_product_result<TorqueTag, AngularVelocityTag>
+    {
+        using type = PowerTag;
+    };
 
     // commutative
     template <>
@@ -192,6 +200,11 @@ namespace strong_types
     {
         using type = MassTag;
     };
+    template <>
+    struct tag_product_result<AngularVelocityTag, TorqueTag>
+    {
+        using type = PowerTag;
+    };
 
     // ---- tag-level quotient results ----
     template <>
@@ -233,6 +246,16 @@ namespace strong_types
     struct tag_quotient_result<MassTag, VolumeTag>
     {
         using type = DensityTag;
+    };
+    template <>
+    struct tag_quotient_result<PowerTag, AngularVelocityTag>
+    {
+        using type = TorqueTag;
+    };
+    template <>
+    struct tag_quotient_result<PowerTag, TorqueTag>
+    {
+        using type = AngularVelocityTag;
     };
 
 } // namespace strong_types

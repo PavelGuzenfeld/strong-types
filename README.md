@@ -86,9 +86,9 @@ constexpr auto meters = unit_t<double, LengthTag>{1000.0};
 constexpr auto km = from_base<Kilometers<double>>(meters);
 static_assert(km.get() == 1.0);  // 1000 m = 1 km
 
-// checked_cast: convert between different scales
+// scale_cast: convert between different scales
 constexpr auto hours = Hours<double>{2.0};
-constexpr auto mins = checked_cast<Minutes<double>>(hours);
+constexpr auto mins = scale_cast<Minutes<double>>(hours);
 static_assert(mins.get() == 120.0);  // 2 hr = 120 min
 ```
 
@@ -149,7 +149,7 @@ static_assert((a + b).get() == 15.0f);
 | `strong.hpp` | `Strong<T, Tag>` wrapper, arithmetic ops, type traits |
 | `si.hpp` | SI tags (`LengthTag`, `MassTag`, `PowerTag`, ...) and dimensional trait rules |
 | `si_literals.hpp` | UDLs for base units (`_m`, `_kg`, `_s`, `_W`, `_Pa`, ...) |
-| `si_scaled.hpp` | `ScaledUnit<T, Tag, Ratio>`, `from_base()`, `checked_cast()`, aliases |
+| `si_scaled.hpp` | `ScaledUnit<T, Tag, Ratio>`, `from_base()`, `scale_cast()`, aliases |
 | `si_scaled_literals.hpp` | UDLs for scaled units (`_km`, `_cm`, `_mm`, `_hr`, `_ms`, `_kmh`, ...) |
 | `si_chrono.hpp` | `constexpr` conversions: `from_chrono`, `to_chrono`, `from_timespec`, `to_timeval`, etc. |
 | `fmt.hpp` | Opt-in `fmt::formatter` specializations (requires linking `fmt::fmt`) |
@@ -179,6 +179,7 @@ static_assert((a + b).get() == 15.0f);
 | `AngularVelocityTag` | rad/s | Angular velocity |
 | `VolumeTag` | m3 | Volume |
 | `DensityTag` | kg/m3 | Density |
+| `TorqueTag` | Nm | Torque |
 
 ### Dimensional Algebra Rules
 
@@ -201,6 +202,9 @@ static_assert((a + b).get() == 15.0f);
 | `Volume / Area` | Length | `m3 / m2 = m` |
 | `Mass / Volume` | Density | `kg / m3 = kg/m3` |
 | `Density * Volume` | Mass | `(kg/m3) * m3 = kg` |
+| `Torque * AngularVelocity` | Power | `Nm * rad/s = W` |
+| `Power / AngularVelocity` | Torque | `W / (rad/s) = Nm` |
+| `Power / Torque` | AngularVelocity | `W / Nm = rad/s` |
 | `1 / Time` | Hertz | `1 / s = Hz` |
 | `Tag / Tag` | scalar | same-unit ratio |
 
@@ -231,11 +235,11 @@ All product rules are commutative (`A * B` and `B * A` both work). All same-tag 
 | Function | Description |
 |----------|-------------|
 | `from_base<TargetScaled>(unit_t<T, Tag>)` | Convert base unit to scaled (e.g. `1000.0_m` -> `Kilometers{1.0}`) |
-| `checked_cast<TargetScaled>(ScaledUnit)` | Convert between scales with explicit cast (e.g. `2_hr` -> `Minutes{120}`) |
+| `scale_cast<TargetScaled>(ScaledUnit)` | Convert between scales with explicit cast (e.g. `2_hr` -> `Minutes{120}`) |
 
 ### Base Unit UDLs (`si_literals`)
 
-`_m`, `_kg`, `_s`, `_m2`, `_mps`, `_mps2`, `_N`, `_J`, `_Hz`, `_degC`, `_V`, `_rad`, `_sr`, `_W`, `_Pa`, `_rps`, `_m3`
+`_m`, `_kg`, `_s`, `_m2`, `_mps`, `_mps2`, `_N`, `_J`, `_Hz`, `_degC`, `_V`, `_rad`, `_sr`, `_W`, `_Pa`, `_rps`, `_m3`, `_Nm`
 
 ## Tests
 
