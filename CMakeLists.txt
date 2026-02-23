@@ -59,7 +59,7 @@ install(
 # Test executable
 add_executable(${PROJECT_NAME}_test test/strong_types_test.cpp test/si_test.cpp test/si_literals_test.cpp test/strong_aligned_array_test.cpp test/si_scaled_test.cpp)
 target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
-add_compile_options(${PROJECT_NAME}_test PRIVATE
+target_compile_options(${PROJECT_NAME}_test PRIVATE
             -Wextra            # Enable extra warnings
             -Wpedantic         # Enable pedantic warnings
             -Werror            # Treat warnings as errors
@@ -85,6 +85,22 @@ add_compile_options(${PROJECT_NAME}_test PRIVATE
 #     EXPORT ${PROJECT_NAME}Targets
 #     DESTINATION bin
 # )
+
+# Optional fmt test (only built when fmt is available)
+find_package(fmt QUIET)
+if(fmt_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(doctest
+        GIT_REPOSITORY https://github.com/doctest/doctest.git
+        GIT_TAG v2.4.11
+    )
+    FetchContent_MakeAvailable(doctest)
+
+    add_executable(${PROJECT_NAME}_fmt_test test/fmt_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_fmt_test PRIVATE ${PROJECT_NAME} fmt::fmt doctest::doctest)
+
+    add_test(NAME ${PROJECT_NAME}_fmt_test COMMAND ${PROJECT_NAME}_fmt_test)
+endif()
 
 # Handle "Manually-specified variables were not used by the project" warning.
 unset(CATKIN_INSTALL_INTO_PREFIX_ROOT)
