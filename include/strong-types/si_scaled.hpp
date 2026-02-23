@@ -75,11 +75,11 @@ inline constexpr bool is_scaled_v<ScaledUnit<T, Tag, R>> = true;
 template <typename A, typename B>
 concept SameTagScaled = is_scaled_v<A> && is_scaled_v<B> && std::is_same_v<typename A::tag_type, typename B::tag_type>;
 
-// ---- from_base: base unit → ScaledUnit ----
+// ---- scale_cast: base unit_t → ScaledUnit (implicitly ratio<1>) ----
 
 template <typename TargetScaled, typename T, typename Tag>
     requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag>
-[[nodiscard]] constexpr TargetScaled from_base(unit_t<T, Tag> base) noexcept
+[[nodiscard]] constexpr TargetScaled scale_cast(unit_t<T, Tag> base) noexcept
 {
     using TargetT = typename TargetScaled::value_type;
     using R = typename TargetScaled::ratio_type;

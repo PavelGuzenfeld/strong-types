@@ -117,7 +117,7 @@ static void check_divide(int32_t a, int32_t b)
 
 static void check_scaled_round_trip(int32_t val)
 {
-    // safe_to_base(ScaledUnit<int, LengthTag, kilo>) then safe_from_base back
+    // safe_to_base(ScaledUnit<int, LengthTag, kilo>) then safe_scale_cast back
     using Km = strong_types::ScaledUnit<int32_t, strong_types::LengthTag, std::kilo>;
     Km km{val};
 
@@ -135,7 +135,7 @@ static void check_scaled_round_trip(int32_t val)
     }
 
     // Round-trip: base -> km should recover the original value
-    auto back = strong_types::safe_from_base<Km>(base.value());
+    auto back = strong_types::safe_scale_cast<Km>(base.value());
     if (!back.has_value() || back.value().get() != val)
     {
         __builtin_trap();

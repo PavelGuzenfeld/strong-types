@@ -52,10 +52,10 @@ static_assert(
 static_assert(
     [] {
         constexpr auto big = unit_t<double, LengthTag>{1e15};
-        constexpr auto scaled = from_base<Kilometers<double>>(big);
+        constexpr auto scaled = scale_cast<Kilometers<double>>(big);
         return scaled.get() == 1e12;
     }(),
-    "very large m to km via from_base");
+    "very large m to km via scale_cast");
 
 // ---- Very small numbers ----
 
@@ -275,55 +275,55 @@ static_assert(
     }(),
     "mass / mass = scalar");
 
-// ---- from_base() round-trips ----
+// ---- scale_cast from base unit round-trips ----
 
 static_assert(
     [] {
         constexpr auto base = unit_t<double, LengthTag>{1000.0};
-        constexpr auto km = from_base<Kilometers<double>>(base);
+        constexpr auto km = scale_cast<Kilometers<double>>(base);
         return km.get() == 1.0;
     }(),
-    "from_base: 1000m -> 1km");
+    "scale_cast: 1000m -> 1km");
 
 static_assert(
     [] {
         constexpr auto base = unit_t<double, TimeTag>{3600.0};
-        constexpr auto hr = from_base<Hours<double>>(base);
+        constexpr auto hr = scale_cast<Hours<double>>(base);
         return hr.get() == 1.0;
     }(),
-    "from_base: 3600s -> 1hr");
+    "scale_cast: 3600s -> 1hr");
 
 static_assert(
     [] {
         constexpr auto base = unit_t<double, TimeTag>{86400.0};
-        constexpr auto day = from_base<Days<double>>(base);
+        constexpr auto day = scale_cast<Days<double>>(base);
         return day.get() == 1.0;
     }(),
-    "from_base: 86400s -> 1d");
+    "scale_cast: 86400s -> 1d");
 
 static_assert(
     [] {
         constexpr auto base = unit_t<double, MassTag>{1000.0};
-        constexpr auto ton = from_base<Tons<double>>(base);
+        constexpr auto ton = scale_cast<Tons<double>>(base);
         return ton.get() == 1.0;
     }(),
-    "from_base: 1000kg -> 1t");
+    "scale_cast: 1000kg -> 1t");
 
 static_assert(
     [] {
         constexpr auto orig = 5.0_km;
-        constexpr auto round_trip = from_base<Kilometers<double>>(orig.to_base());
+        constexpr auto round_trip = scale_cast<Kilometers<double>>(orig.to_base());
         return round_trip.get() == 5.0;
     }(),
-    "from_base round-trip: km -> m -> km");
+    "scale_cast round-trip: km -> m -> km");
 
 static_assert(
     [] {
         constexpr auto orig = 250.0_ms;
-        constexpr auto round_trip = from_base<Milliseconds<double>>(orig.to_base());
+        constexpr auto round_trip = scale_cast<Milliseconds<double>>(orig.to_base());
         return round_trip.get() == 250.0;
     }(),
-    "from_base round-trip: ms -> s -> ms");
+    "scale_cast round-trip: ms -> s -> ms");
 
 // ---- scale_cast ----
 
@@ -364,10 +364,10 @@ static_assert(
 static_assert(
     [] {
         constexpr auto base = unit_t<double, SpeedTag>{10.0};
-        constexpr auto kmh = from_base<KilometersPerHour<double>>(base);
+        constexpr auto kmh = scale_cast<KilometersPerHour<double>>(base);
         return kmh.get() == 36.0;
     }(),
-    "from_base: 10 m/s -> 36 km/h");
+    "scale_cast: 10 m/s -> 36 km/h");
 
 static_assert(
     [] {

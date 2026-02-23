@@ -212,25 +212,23 @@ template <typename T, typename Tag, typename Ratio>
     return unit_t<T, Tag>{*div};
 }
 
-// ---- safe_from_base: unit_t<int> → ScaledUnit<int> with overflow/truncation check ----
+// ---- safe_scale_cast: base unit_t<int> → ScaledUnit<int> (implicitly ratio<1>) ----
 
 template <typename TargetScaled, typename T, typename Tag>
     requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
                  std::integral<typename TargetScaled::value_type>
-[[nodiscard]] constexpr auto safe_from_base(unit_t<T, Tag> base)
+[[nodiscard]] constexpr auto safe_scale_cast(unit_t<T, Tag> base)
     -> std::expected<TargetScaled, ArithmeticErrc>
 {
     using TargetT = typename TargetScaled::value_type;
     using R = typename TargetScaled::ratio_type;
 
-    // from_base = base * den / num
     auto mul = safe_multiply(static_cast<TargetT>(base.get()), static_cast<TargetT>(R::den));
     if (!mul)
     {
         return std::unexpected{mul.error()};
     }
 
-    // Check for truncation: if (*mul % num != 0), we lose precision
     auto num = static_cast<TargetT>(R::num);
     if ((*mul % num) != TargetT{0})
     {
