@@ -17,20 +17,27 @@ namespace strong_types::si_scaled_literals
     }
 
 // Length
-STRONG_TYPES_DEFINE_SCALED_UDL(km, Kilometers<double>)
-STRONG_TYPES_DEFINE_SCALED_UDL(cm, Centimeters<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(um, Micrometers<double>)
 STRONG_TYPES_DEFINE_SCALED_UDL(mm, Millimeters<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(cm, Centimeters<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(km, Kilometers<double>)
 
 // Time
+STRONG_TYPES_DEFINE_SCALED_UDL(ns, Nanoseconds<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(us, Microseconds<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(ms, Milliseconds<double>)
 STRONG_TYPES_DEFINE_SCALED_UDL(min, Minutes<double>)
 STRONG_TYPES_DEFINE_SCALED_UDL(hr, Hours<double>)
-STRONG_TYPES_DEFINE_SCALED_UDL(ms, Milliseconds<double>)
-STRONG_TYPES_DEFINE_SCALED_UDL(us, Microseconds<double>)
-STRONG_TYPES_DEFINE_SCALED_UDL(ns, Nanoseconds<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(d, Days<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(wk, Weeks<double>)
 
 // Mass
-STRONG_TYPES_DEFINE_SCALED_UDL(g, Grams<double>)
 STRONG_TYPES_DEFINE_SCALED_UDL(mg, Milligrams<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(g, Grams<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(t, Tons<double>)
+
+// Speed
+STRONG_TYPES_DEFINE_SCALED_UDL(kmh, KilometersPerHour<double>)
 
 #undef STRONG_TYPES_DEFINE_SCALED_UDL
 // NOLINTEND(cppcoreguidelines-macro-usage,bugprone-macro-parentheses)

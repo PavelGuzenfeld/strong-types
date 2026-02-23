@@ -56,35 +56,64 @@ install(
   DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
-# Test executable
-add_executable(${PROJECT_NAME}_test test/strong_types_test.cpp test/si_test.cpp test/si_literals_test.cpp test/strong_aligned_array_test.cpp test/si_scaled_test.cpp test/si_chrono_test.cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
-target_compile_options(${PROJECT_NAME}_test PRIVATE
-            -Wextra            # Enable extra warnings
-            -Wpedantic         # Enable pedantic warnings
-            -Werror            # Treat warnings as errors
-            # -Wstack-usage=4096 # Warn for large stack usage
-            -pedantic # Enable pedantic warnings
-            -Wconversion # Warn for implicit conversions
-            -Wsign-conversion # Warn for sign conversions
-            -Wdouble-promotion # Warn for implicit double promotions
-            -Wformat=2 # Warn for format errors
-            -Wduplicated-cond # Warn for duplicated conditions
-            -Wduplicated-branches # Warn for duplicated branches
-            -Wlogical-op # Warn for logical operations
-            -Wuseless-cast # Warn for useless casts
-            -Wshadow # Warn for shadowed variables
-            -Wuninitialized # Warn for uninitialized variables
-            -Wunreachable-code # Warn for unreachable code
-            -Wunused # Warn for unused variables
+# ---- Compiler-specific warning flags ----
+
+set(STRONG_TYPES_COMMON_WARNINGS
+    -Wextra
+    -Wpedantic
+    -Werror
+    -pedantic
+    -Wconversion
+    -Wsign-conversion
+    -Wdouble-promotion
+    -Wformat=2
+    -Wshadow
+    -Wuninitialized
+    -Wunreachable-code
+    -Wunused
 )
 
-# # Export the target
-# install(
-#     TARGETS ${PROJECT_NAME}_test
-#     EXPORT ${PROJECT_NAME}Targets
-#     DESTINATION bin
-# )
+set(STRONG_TYPES_GCC_WARNINGS
+    ${STRONG_TYPES_COMMON_WARNINGS}
+    -Wduplicated-cond
+    -Wduplicated-branches
+    -Wlogical-op
+    -Wuseless-cast
+)
+
+set(STRONG_TYPES_CLANG_WARNINGS
+    ${STRONG_TYPES_COMMON_WARNINGS}
+)
+
+set(STRONG_TYPES_MSVC_WARNINGS
+    /W4
+    /WX
+    /permissive-
+)
+
+# Test executable
+enable_testing()
+
+add_executable(${PROJECT_NAME}_test
+    test/strong_types_test.cpp
+    test/si_test.cpp
+    test/si_literals_test.cpp
+    test/strong_aligned_array_test.cpp
+    test/si_scaled_test.cpp
+    test/si_chrono_test.cpp
+    test/edge_cases_test.cpp
+)
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${PROJECT_NAME}_test PRIVATE ${STRONG_TYPES_GCC_WARNINGS})
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(${PROJECT_NAME}_test PRIVATE ${STRONG_TYPES_CLANG_WARNINGS})
+elseif(MSVC)
+    target_compile_options(${PROJECT_NAME}_test PRIVATE ${STRONG_TYPES_MSVC_WARNINGS})
+endif()
+
+add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
 
 # Optional fmt test (only built when fmt is available)
 find_package(fmt QUIET)
@@ -98,6 +127,14 @@ if(fmt_FOUND)
 
     add_executable(${PROJECT_NAME}_fmt_test test/fmt_test.cpp)
     target_link_libraries(${PROJECT_NAME}_fmt_test PRIVATE ${PROJECT_NAME} fmt::fmt doctest::doctest)
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${PROJECT_NAME}_fmt_test PRIVATE ${STRONG_TYPES_GCC_WARNINGS})
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${PROJECT_NAME}_fmt_test PRIVATE ${STRONG_TYPES_CLANG_WARNINGS})
+    elseif(MSVC)
+        target_compile_options(${PROJECT_NAME}_fmt_test PRIVATE ${STRONG_TYPES_MSVC_WARNINGS})
+    endif()
 
     add_test(NAME ${PROJECT_NAME}_fmt_test COMMAND ${PROJECT_NAME}_fmt_test)
 endif()

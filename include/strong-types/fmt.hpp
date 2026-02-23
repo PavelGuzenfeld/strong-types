@@ -9,7 +9,7 @@
 namespace strong_types
 {
 
-// ---- tag → suffix mapping ----
+// ---- tag -> suffix mapping ----
 
 template <typename Tag>
 struct tag_suffix
@@ -82,8 +82,33 @@ struct tag_suffix<SteradianTag>
 {
     static constexpr std::string_view value = "sr";
 };
+template <>
+struct tag_suffix<PowerTag>
+{
+    static constexpr std::string_view value = "W";
+};
+template <>
+struct tag_suffix<PressureTag>
+{
+    static constexpr std::string_view value = "Pa";
+};
+template <>
+struct tag_suffix<AngularVelocityTag>
+{
+    static constexpr std::string_view value = "rad/s";
+};
+template <>
+struct tag_suffix<VolumeTag>
+{
+    static constexpr std::string_view value = "m3";
+};
+template <>
+struct tag_suffix<DensityTag>
+{
+    static constexpr std::string_view value = "kg/m3";
+};
 
-// ---- scaled unit → suffix override ----
+// ---- scaled unit -> suffix override ----
 
 template <typename Tag, typename Ratio>
 struct scaled_suffix
@@ -93,9 +118,14 @@ struct scaled_suffix
 
 // Length scales
 template <>
-struct scaled_suffix<LengthTag, std::kilo>
+struct scaled_suffix<LengthTag, std::micro>
 {
-    static constexpr std::string_view value = "km";
+    static constexpr std::string_view value = "um";
+};
+template <>
+struct scaled_suffix<LengthTag, std::milli>
+{
+    static constexpr std::string_view value = "mm";
 };
 template <>
 struct scaled_suffix<LengthTag, std::centi>
@@ -103,26 +133,16 @@ struct scaled_suffix<LengthTag, std::centi>
     static constexpr std::string_view value = "cm";
 };
 template <>
-struct scaled_suffix<LengthTag, std::milli>
+struct scaled_suffix<LengthTag, std::kilo>
 {
-    static constexpr std::string_view value = "mm";
+    static constexpr std::string_view value = "km";
 };
 
 // Time scales
 template <>
-struct scaled_suffix<TimeTag, std::ratio<3600>>
+struct scaled_suffix<TimeTag, std::nano>
 {
-    static constexpr std::string_view value = "hr";
-};
-template <>
-struct scaled_suffix<TimeTag, std::ratio<60>>
-{
-    static constexpr std::string_view value = "min";
-};
-template <>
-struct scaled_suffix<TimeTag, std::milli>
-{
-    static constexpr std::string_view value = "ms";
+    static constexpr std::string_view value = "ns";
 };
 template <>
 struct scaled_suffix<TimeTag, std::micro>
@@ -130,21 +150,53 @@ struct scaled_suffix<TimeTag, std::micro>
     static constexpr std::string_view value = "us";
 };
 template <>
-struct scaled_suffix<TimeTag, std::nano>
+struct scaled_suffix<TimeTag, std::milli>
 {
-    static constexpr std::string_view value = "ns";
+    static constexpr std::string_view value = "ms";
+};
+template <>
+struct scaled_suffix<TimeTag, std::ratio<60>>
+{
+    static constexpr std::string_view value = "min";
+};
+template <>
+struct scaled_suffix<TimeTag, std::ratio<3600>>
+{
+    static constexpr std::string_view value = "hr";
+};
+template <>
+struct scaled_suffix<TimeTag, std::ratio<86400>>
+{
+    static constexpr std::string_view value = "d";
+};
+template <>
+struct scaled_suffix<TimeTag, std::ratio<604800>>
+{
+    static constexpr std::string_view value = "wk";
 };
 
 // Mass scales (base = kg)
+template <>
+struct scaled_suffix<MassTag, std::ratio<1, 1000000>>
+{
+    static constexpr std::string_view value = "mg";
+};
 template <>
 struct scaled_suffix<MassTag, std::ratio<1, 1000>>
 {
     static constexpr std::string_view value = "g";
 };
 template <>
-struct scaled_suffix<MassTag, std::ratio<1, 1000000>>
+struct scaled_suffix<MassTag, std::kilo>
 {
-    static constexpr std::string_view value = "mg";
+    static constexpr std::string_view value = "t";
+};
+
+// Speed scales
+template <>
+struct scaled_suffix<SpeedTag, std::ratio<5, 18>>
+{
+    static constexpr std::string_view value = "km/h";
 };
 
 } // namespace strong_types

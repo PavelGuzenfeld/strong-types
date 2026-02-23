@@ -24,9 +24,20 @@ struct ScaledUnit
     using tag_type = Tag;
     using ratio_type = Ratio;
 
-    constexpr explicit ScaledUnit(T val) noexcept : value_(val)
+    template <typename U>
+        requires std::same_as<std::remove_cvref_t<U>, T>
+    constexpr explicit ScaledUnit(U &&val) noexcept : value_(std::forward<U>(val))
     {
     }
+
+    template <typename U>
+        requires(!std::same_as<std::remove_cvref_t<U>, T>)
+    explicit ScaledUnit(U && /*unused*/) // NOLINT(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
+    {
+        static_assert(always_false_v<U>,
+                      "narrowing/mismatched construction of ScaledUnit — cast to T first");
+    }
+
     constexpr ScaledUnit() noexcept = default;
 
     [[nodiscard]] constexpr T get() const noexcept
@@ -64,6 +75,31 @@ inline constexpr bool is_scaled_v<ScaledUnit<T, Tag, R>> = true;
 template <typename A, typename B>
 concept SameTagScaled = is_scaled_v<A> && is_scaled_v<B> && std::is_same_v<typename A::tag_type, typename B::tag_type>;
 
+// ---- from_base: base unit → ScaledUnit ----
+
+template <typename TargetScaled, typename T, typename Tag>
+    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag>
+[[nodiscard]] constexpr TargetScaled from_base(unit_t<T, Tag> base) noexcept
+{
+    using TargetT = typename TargetScaled::value_type;
+    using R = typename TargetScaled::ratio_type;
+    return TargetScaled{static_cast<TargetT>(
+        base.get() * static_cast<T>(R::den) / static_cast<T>(R::num))};
+}
+
+// ---- checked_cast: ScaledUnit → ScaledUnit (explicit scale conversion) ----
+
+template <typename TargetScaled, typename T, typename Tag, typename R>
+    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag>
+[[nodiscard]] constexpr TargetScaled checked_cast(ScaledUnit<T, Tag, R> from) noexcept
+{
+    using TargetT = typename TargetScaled::value_type;
+    using TargetR = typename TargetScaled::ratio_type;
+    using F = std::ratio_divide<R, TargetR>;
+    return TargetScaled{static_cast<TargetT>(
+        from.get() * static_cast<T>(F::num) / static_cast<T>(F::den))};
+}
+
 // ---- unary negate ----
 
 template <typename T, typename Tag, typename R>
@@ -88,7 +124,7 @@ template <typename T, typename Tag, typename R>
     return ScaledUnit<T, Tag, R>{lhs.get() - rhs.get()};
 }
 
-// ---- cross-scale add/sub (same tag, different ratio → base) ----
+// ---- cross-scale add/sub (same tag, different ratio -> base) ----
 
 template <typename LHS, typename RHS>
     requires SameTagScaled<LHS, RHS> && (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>)
@@ -104,7 +140,7 @@ template <typename LHS, typename RHS>
     return lhs.to_base() - rhs.to_base();
 }
 
-// ---- scaled ± base unit_t (same tag → base) ----
+// ---- scaled +/- base unit_t (same tag -> base) ----
 
 template <typename T, typename Tag, typename R>
 [[nodiscard]] constexpr unit_t<T, Tag> operator+(const ScaledUnit<T, Tag, R> &lhs, const unit_t<T, Tag> &rhs)
@@ -153,7 +189,7 @@ template <typename T, typename Tag, typename R, Scalar S>
     return ScaledUnit<T, Tag, R>{lhs.get() / static_cast<T>(scalar)};
 }
 
-// ---- scaled × scaled multiply (delegates to base Strong ops) ----
+// ---- scaled x scaled multiply (delegates to base Strong ops) ----
 
 template <typename T, typename LTag, typename LR, typename RTag, typename RR>
 [[nodiscard]] constexpr auto operator*(const ScaledUnit<T, LTag, LR> &lhs, const ScaledUnit<T, RTag, RR> &rhs)
@@ -169,7 +205,7 @@ template <typename T, typename LTag, typename LR, typename RTag, typename RR>
     return lhs.to_base() / rhs.to_base();
 }
 
-// ---- scaled × base unit_t (delegates to base) ----
+// ---- scaled x base unit_t (delegates to base) ----
 
 template <typename T, typename LTag, typename R, typename RTag>
 [[nodiscard]] constexpr auto operator*(const ScaledUnit<T, LTag, R> &lhs, const unit_t<T, RTag> &rhs)
@@ -229,28 +265,40 @@ template <typename T, typename Tag, typename R>
 
 // Length
 template <typename T>
-using Kilometers = ScaledUnit<T, LengthTag, std::kilo>;
+using Micrometers = ScaledUnit<T, LengthTag, std::micro>;
+template <typename T>
+using Millimeters = ScaledUnit<T, LengthTag, std::milli>;
 template <typename T>
 using Centimeters = ScaledUnit<T, LengthTag, std::centi>;
 template <typename T>
-using Millimeters = ScaledUnit<T, LengthTag, std::milli>;
+using Kilometers = ScaledUnit<T, LengthTag, std::kilo>;
 
 // Time
+template <typename T>
+using Nanoseconds = ScaledUnit<T, TimeTag, std::nano>;
+template <typename T>
+using Microseconds = ScaledUnit<T, TimeTag, std::micro>;
+template <typename T>
+using Milliseconds = ScaledUnit<T, TimeTag, std::milli>;
 template <typename T>
 using Minutes = ScaledUnit<T, TimeTag, std::ratio<60>>; // NOLINT(readability-magic-numbers)
 template <typename T>
 using Hours = ScaledUnit<T, TimeTag, std::ratio<3600>>; // NOLINT(readability-magic-numbers)
 template <typename T>
-using Milliseconds = ScaledUnit<T, TimeTag, std::milli>;
+using Days = ScaledUnit<T, TimeTag, std::ratio<86400>>; // NOLINT(readability-magic-numbers)
 template <typename T>
-using Microseconds = ScaledUnit<T, TimeTag, std::micro>;
-template <typename T>
-using Nanoseconds = ScaledUnit<T, TimeTag, std::nano>;
+using Weeks = ScaledUnit<T, TimeTag, std::ratio<604800>>; // NOLINT(readability-magic-numbers)
 
 // Mass (base = kilograms)
 template <typename T>
+using Milligrams = ScaledUnit<T, MassTag, std::ratio<1, 1000000>>; // NOLINT(readability-magic-numbers)
+template <typename T>
 using Grams = ScaledUnit<T, MassTag, std::ratio<1, 1000>>; // NOLINT(readability-magic-numbers)
 template <typename T>
-using Milligrams = ScaledUnit<T, MassTag, std::ratio<1, 1000000>>; // NOLINT(readability-magic-numbers)
+using Tons = ScaledUnit<T, MassTag, std::kilo>;
+
+// Speed
+template <typename T>
+using KilometersPerHour = ScaledUnit<T, SpeedTag, std::ratio<5, 18>>; // NOLINT(readability-magic-numbers)
 
 } // namespace strong_types

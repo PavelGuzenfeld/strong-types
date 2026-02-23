@@ -19,6 +19,11 @@ namespace strong_types
     struct VoltTag;
     struct RadianTag;
     struct SteradianTag;
+    struct PowerTag;
+    struct PressureTag;
+    struct AngularVelocityTag;
+    struct VolumeTag;
+    struct DensityTag;
 
     // alias
     template <typename T, typename Tag>
@@ -53,6 +58,7 @@ namespace strong_types
     }
 
     DEFINE_ADD_SUB(LengthTag);
+    DEFINE_ADD_SUB(MassTag);
     DEFINE_ADD_SUB(TimeTag);
     DEFINE_ADD_SUB(SpeedTag);
     DEFINE_ADD_SUB(AccelerationTag);
@@ -64,7 +70,39 @@ namespace strong_types
     DEFINE_ADD_SUB(VoltTag);
     DEFINE_ADD_SUB(RadianTag);
     DEFINE_ADD_SUB(SteradianTag);
+    DEFINE_ADD_SUB(PowerTag);
+    DEFINE_ADD_SUB(PressureTag);
+    DEFINE_ADD_SUB(AngularVelocityTag);
+    DEFINE_ADD_SUB(VolumeTag);
+    DEFINE_ADD_SUB(DensityTag);
 #undef DEFINE_ADD_SUB
+
+    // ---- same-tag quotient → scalar ----
+
+#define DEFINE_SELF_QUOTIENT(Tag)                    \
+    template <>                                      \
+    struct tag_quotient_result<Tag, Tag>             \
+    {                                                \
+        using type = void;                           \
+    }
+
+    DEFINE_SELF_QUOTIENT(LengthTag);
+    DEFINE_SELF_QUOTIENT(MassTag);
+    DEFINE_SELF_QUOTIENT(TimeTag);
+    DEFINE_SELF_QUOTIENT(SpeedTag);
+    DEFINE_SELF_QUOTIENT(AccelerationTag);
+    DEFINE_SELF_QUOTIENT(ForceTag);
+    DEFINE_SELF_QUOTIENT(EnergyTag);
+    DEFINE_SELF_QUOTIENT(AreaTag);
+    DEFINE_SELF_QUOTIENT(HertzTag);
+    DEFINE_SELF_QUOTIENT(RadianTag);
+    DEFINE_SELF_QUOTIENT(SteradianTag);
+    DEFINE_SELF_QUOTIENT(PowerTag);
+    DEFINE_SELF_QUOTIENT(PressureTag);
+    DEFINE_SELF_QUOTIENT(AngularVelocityTag);
+    DEFINE_SELF_QUOTIENT(VolumeTag);
+    DEFINE_SELF_QUOTIENT(DensityTag);
+#undef DEFINE_SELF_QUOTIENT
 
     // ---- tag-level product results ----
     template <>
@@ -87,6 +125,31 @@ namespace strong_types
     {
         using type = EnergyTag;
     };
+    template <>
+    struct tag_product_result<PowerTag, TimeTag>
+    {
+        using type = EnergyTag;
+    };
+    template <>
+    struct tag_product_result<PressureTag, AreaTag>
+    {
+        using type = ForceTag;
+    };
+    template <>
+    struct tag_product_result<AngularVelocityTag, TimeTag>
+    {
+        using type = RadianTag;
+    };
+    template <>
+    struct tag_product_result<LengthTag, AreaTag>
+    {
+        using type = VolumeTag;
+    };
+    template <>
+    struct tag_product_result<DensityTag, VolumeTag>
+    {
+        using type = MassTag;
+    };
 
     // commutative
     template <>
@@ -104,6 +167,31 @@ namespace strong_types
     {
         using type = EnergyTag;
     };
+    template <>
+    struct tag_product_result<TimeTag, PowerTag>
+    {
+        using type = EnergyTag;
+    };
+    template <>
+    struct tag_product_result<AreaTag, PressureTag>
+    {
+        using type = ForceTag;
+    };
+    template <>
+    struct tag_product_result<TimeTag, AngularVelocityTag>
+    {
+        using type = RadianTag;
+    };
+    template <>
+    struct tag_product_result<AreaTag, LengthTag>
+    {
+        using type = VolumeTag;
+    };
+    template <>
+    struct tag_product_result<VolumeTag, DensityTag>
+    {
+        using type = MassTag;
+    };
 
     // ---- tag-level quotient results ----
     template <>
@@ -117,14 +205,34 @@ namespace strong_types
         using type = AccelerationTag;
     };
     template <>
-    struct tag_quotient_result<LengthTag, LengthTag>
+    struct tag_quotient_result<EnergyTag, TimeTag>
     {
-        using type = void;
-    }; // scalar
+        using type = PowerTag;
+    };
     template <>
-    struct tag_quotient_result<TimeTag, TimeTag>
+    struct tag_quotient_result<ForceTag, AreaTag>
     {
-        using type = void;
-    }; // scalar
+        using type = PressureTag;
+    };
+    template <>
+    struct tag_quotient_result<RadianTag, TimeTag>
+    {
+        using type = AngularVelocityTag;
+    };
+    template <>
+    struct tag_quotient_result<VolumeTag, LengthTag>
+    {
+        using type = AreaTag;
+    };
+    template <>
+    struct tag_quotient_result<VolumeTag, AreaTag>
+    {
+        using type = LengthTag;
+    };
+    template <>
+    struct tag_quotient_result<MassTag, VolumeTag>
+    {
+        using type = DensityTag;
+    };
 
 } // namespace strong_types
