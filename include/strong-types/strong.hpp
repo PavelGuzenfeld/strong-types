@@ -167,36 +167,6 @@ struct quotient_result<Strong<T, TAG>, S>
     using type = Strong<T, TAG>;
 };
 
-// ---- arithmetic ops (tagged only) ----
-
-template <typename LHS, typename RHS>
-    requires requires { typename sum_result<LHS, RHS>::type; }
-[[nodiscard]] constexpr auto operator+(const LHS &lhs, const RHS &rhs) -> typename sum_result<LHS, RHS>::type
-{
-    return typename sum_result<LHS, RHS>::type{lhs.get() + rhs.get()};
-}
-
-template <typename LHS, typename RHS>
-    requires requires { typename difference_result<LHS, RHS>::type; }
-[[nodiscard]] constexpr auto operator-(const LHS &lhs, const RHS &rhs) -> typename difference_result<LHS, RHS>::type
-{
-    return typename difference_result<LHS, RHS>::type{lhs.get() - rhs.get()};
-}
-
-template <typename LHS, typename RHS>
-    requires requires { typename product_result<LHS, RHS>::type; }
-[[nodiscard]] constexpr auto operator*(const LHS &lhs, const RHS &rhs) -> typename product_result<LHS, RHS>::type
-{
-    return typename product_result<LHS, RHS>::type{lhs.get() * rhs.get()};
-}
-
-template <typename LHS, typename RHS>
-    requires requires { typename quotient_result<LHS, RHS>::type; }
-[[nodiscard]] constexpr auto operator/(const LHS &lhs, const RHS &rhs) -> typename quotient_result<LHS, RHS>::type
-{
-    return typename quotient_result<LHS, RHS>::type{lhs.get() / rhs.get()};
-}
-
 // ---- Strong-type detector (breaks recursion under clang) ----
 
 template <typename>
@@ -204,6 +174,36 @@ inline constexpr bool is_strong_v = false;
 
 template <typename T, typename Tag>
 inline constexpr bool is_strong_v<Strong<T, Tag>> = true;
+
+// ---- arithmetic ops (tagged only, Strong operands) ----
+
+template <typename LHS, typename RHS>
+    requires is_strong_v<LHS> && requires { typename sum_result<LHS, RHS>::type; }
+[[nodiscard]] constexpr auto operator+(const LHS &lhs, const RHS &rhs) -> typename sum_result<LHS, RHS>::type
+{
+    return typename sum_result<LHS, RHS>::type{lhs.get() + rhs.get()};
+}
+
+template <typename LHS, typename RHS>
+    requires is_strong_v<LHS> && requires { typename difference_result<LHS, RHS>::type; }
+[[nodiscard]] constexpr auto operator-(const LHS &lhs, const RHS &rhs) -> typename difference_result<LHS, RHS>::type
+{
+    return typename difference_result<LHS, RHS>::type{lhs.get() - rhs.get()};
+}
+
+template <typename LHS, typename RHS>
+    requires is_strong_v<LHS> && requires { typename product_result<LHS, RHS>::type; }
+[[nodiscard]] constexpr auto operator*(const LHS &lhs, const RHS &rhs) -> typename product_result<LHS, RHS>::type
+{
+    return typename product_result<LHS, RHS>::type{lhs.get() * rhs.get()};
+}
+
+template <typename LHS, typename RHS>
+    requires is_strong_v<LHS> && requires { typename quotient_result<LHS, RHS>::type; }
+[[nodiscard]] constexpr auto operator/(const LHS &lhs, const RHS &rhs) -> typename quotient_result<LHS, RHS>::type
+{
+    return typename quotient_result<LHS, RHS>::type{lhs.get() / rhs.get()};
+}
 
 template <typename S>
 concept NotStrong = !is_strong_v<std::remove_cvref_t<S>>;
