@@ -17,6 +17,43 @@
 - **narrowing protection** on `ScaledUnit` construction (same two-overload pattern as `Strong<T, Tag>`)
 - **CI** — GCC 13/14, Clang 17/18, MSVC × Debug/Release
 
+## Comparison with Alternatives
+
+| Feature | **strong-types** | [mp-units](https://github.com/mpusz/mp-units) | [Au](https://github.com/aurora-opensource/au) | [nholthaus/units](https://github.com/nholthaus/units) | [Boost.Units](https://www.boost.org/doc/libs/release/libs/units/) |
+|---|---|---|---|---|---|
+| C++ standard | **C++23** | C++20 | C++14 | C++14 | C++98 |
+| Header-only | yes | no (Conan/vcpkg) | yes | yes (single header) | no (Boost) |
+| Dependencies | **zero** | gsl-lite or std | none | none | Boost |
+| Approximate LOC | **~1 500** | ~30 000 | ~15 000 | ~12 000 (single header) | ~20 000 |
+| constexpr | **everything** | most ops | most ops | partial | no |
+| Concepts / `<=>` | yes | yes | no | no | no |
+| Custom non-arithmetic T | **yes** (`Strong<Vec2, Tag>`) | no | no | no | no |
+| Narrowing protection | **yes** (static_assert) | yes | yes (safe casts) | no | no |
+| Dimensional analysis | trait-based, user-extensible | automatic | automatic | automatic | MPL-based |
+| Scaled units (km, ms) | yes (`ScaledUnit<T,Tag,Ratio>`) | yes | yes | yes | yes |
+| User-defined literals | yes (18 base + 15 scaled) | yes | yes | yes | no |
+| `{fmt}` / `std::format` | opt-in `{fmt}` | yes | yes | `<iostream>` | `<iostream>` |
+| Chrono interop | yes | yes | yes | yes | no |
+| Quantity points / affine | no | yes | yes | no | no |
+| Integer overflow safety | narrowing blocked | partial | **best-in-class** | unsafe | no |
+| CI matrix (compilers) | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | Boost CI |
+| Maintained | **active** | **active** (ISO proposal) | **active** | active (3.x) | unmaintained since 2010 |
+
+### When to choose strong-types
+
+- You want **zero-dependency, minimal footprint** — drop a few headers into your project and go
+- You need `Strong<T, Tag>` with **non-arithmetic T** (vectors, quaternions, custom math types)
+- You prefer **explicit trait rules** you can read and extend over automatic dimension deduction
+- Your project already requires **C++23** and you want to leverage concepts, `<=>`, and `constexpr` throughout
+- You value **fast compile times** — ~1 500 LOC means negligible overhead
+
+### When to choose something else
+
+- You need **hundreds of units** out of the box (mp-units, Au)
+- You need **quantity points / affine types** for temperatures or timestamps (mp-units, Au)
+- You need **safe integer math** on embedded targets (Au)
+- You are stuck on **C++14/17** (Au, nholthaus)
+
 ## Installation
 
 ### CMake (FetchContent)
