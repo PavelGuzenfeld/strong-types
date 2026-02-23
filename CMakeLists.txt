@@ -144,24 +144,32 @@ endif()
 
 # Fuzz testing (opt-in: pass -DBUILD_FUZZING=ON, requires Clang with libFuzzer)
 option(BUILD_FUZZING "Build fuzz tests (requires Clang with libFuzzer)" OFF)
+option(FUZZ_USE_LIBCXX "Use libc++ for fuzz compilation (link stays libstdc++ for fuzzer runtime)" OFF)
 
 if(BUILD_FUZZING)
     if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         message(FATAL_ERROR "Fuzz testing requires Clang (libFuzzer)")
     endif()
 
-    set(FUZZ_FLAGS -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer)
+    # Separate compile/link flags: libFuzzer runtime is pre-built against libstdc++,
+    # so -stdlib=libc++ must only appear in compile flags (for <expected> support).
+    set(FUZZ_COMPILE_FLAGS -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer)
+    set(FUZZ_LINK_FLAGS -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer)
+
+    if(FUZZ_USE_LIBCXX)
+        list(APPEND FUZZ_COMPILE_FLAGS -stdlib=libc++)
+    endif()
 
     add_executable(fuzz_safe_math test/fuzz_safe_math.cpp)
     target_link_libraries(fuzz_safe_math PRIVATE ${PROJECT_NAME})
-    target_compile_options(fuzz_safe_math PRIVATE ${FUZZ_FLAGS})
-    target_link_options(fuzz_safe_math PRIVATE ${FUZZ_FLAGS})
+    target_compile_options(fuzz_safe_math PRIVATE ${FUZZ_COMPILE_FLAGS})
+    target_link_options(fuzz_safe_math PRIVATE ${FUZZ_LINK_FLAGS})
     strong_types_set_warnings(fuzz_safe_math)
 
     add_executable(fuzz_quantity_point test/fuzz_quantity_point.cpp)
     target_link_libraries(fuzz_quantity_point PRIVATE ${PROJECT_NAME})
-    target_compile_options(fuzz_quantity_point PRIVATE ${FUZZ_FLAGS})
-    target_link_options(fuzz_quantity_point PRIVATE ${FUZZ_FLAGS})
+    target_compile_options(fuzz_quantity_point PRIVATE ${FUZZ_COMPILE_FLAGS})
+    target_link_options(fuzz_quantity_point PRIVATE ${FUZZ_LINK_FLAGS})
     strong_types_set_warnings(fuzz_quantity_point)
 endif()
 
