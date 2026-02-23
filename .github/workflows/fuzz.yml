@@ -1,0 +1,41 @@
+name: Fuzz
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-24.04
+    name: "Clang 18 / libFuzzer"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_FUZZING=ON
+        env:
+          CC: clang-18
+          CXX: clang++-18
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Fuzz safe_math (30s)
+        run: |
+          mkdir -p corpus/safe_math
+          ./build/fuzz_safe_math corpus/safe_math -max_total_time=30
+
+      - name: Fuzz quantity_point (30s)
+        run: |
+          mkdir -p corpus/quantity_point
+          ./build/fuzz_quantity_point corpus/quantity_point -max_total_time=30
+
+      - name: Upload corpus
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-corpus
+          path: corpus/

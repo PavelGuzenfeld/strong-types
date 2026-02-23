@@ -15,6 +15,8 @@
 - **scalar + vector math** with full STL iterator compatibility (`AlignedArray`)
 - **compile-time validation** through `static_assert` tests
 - **narrowing protection** on `ScaledUnit` construction (same two-overload pattern as `Strong<T, Tag>`)
+- **quantity points** (affine types) — `QuantityPoint<T, Tag, Origin>` for absolute positions (MSL altitude, GPS coords) with type-safe displacement arithmetic
+- **safe integer math** — `std::expected`-based overflow/underflow/division-by-zero detection for integer operations and scaled conversions
 - **CI** — GCC 13/14, Clang 17/18, MSVC × Debug/Release
 
 ## Comparison with Alternatives
@@ -34,8 +36,8 @@
 | User-defined literals | yes (18 base + 15 scaled) | yes | yes | yes | no |
 | `{fmt}` / `std::format` | opt-in `{fmt}` | yes | yes | `<iostream>` | `<iostream>` |
 | Chrono interop | yes | yes | yes | yes | no |
-| Quantity points / affine | no | yes | yes | no | no |
-| Integer overflow safety | narrowing blocked | partial | **best-in-class** | unsafe | no |
+| Quantity points / affine | **yes** (`QuantityPoint`) | yes | yes | no | no |
+| Integer overflow safety | **yes** (`safe_math.hpp`) | partial | **best-in-class** | unsafe | no |
 | CI matrix (compilers) | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | Boost CI |
 | Maintained | **active** | **active** (ISO proposal) | **active** | active (3.x) | unmaintained since 2010 |
 
@@ -50,8 +52,6 @@
 ### When to choose something else
 
 - You need **hundreds of units** out of the box (mp-units, Au)
-- You need **quantity points / affine types** for temperatures or timestamps (mp-units, Au)
-- You need **safe integer math** on embedded targets (Au)
 - You are stuck on **C++14/17** (Au, nholthaus)
 
 ## Installation
@@ -179,6 +179,54 @@ constexpr Position b{5.0f};
 static_assert((a + b).get() == 15.0f);
 ```
 
+### Quantity points (affine types)
+
+```cpp
+#include "strong-types/quantity_point.hpp"
+#include "strong-types/si_literals.hpp"
+
+using namespace strong_types;
+using namespace strong_types::si_literals;
+
+struct MSLOrigin {};
+struct AGLOrigin {};
+using AltitudeMSL = QuantityPoint<double, LengthTag, MSLOrigin>;
+using AltitudeAGL = QuantityPoint<double, LengthTag, AGLOrigin>;
+
+constexpr AltitudeMSL msl{100.0};
+constexpr auto displacement = 30.0_m;
+constexpr AltitudeMSL shifted = msl + displacement;  // OK: point + displacement
+static_assert(shifted.get() == 130.0);
+
+constexpr auto diff = shifted - msl;  // OK: point - point = displacement
+static_assert(diff.get() == 30.0);
+
+// AltitudeMSL bad = msl + AltitudeAGL{50.0};  // compile error: different origins
+// auto nonsense = msl + shifted;               // compile error: point + point
+```
+
+### Safe integer math
+
+```cpp
+#include "strong-types/safe_math.hpp"
+
+using namespace strong_types;
+
+// All functions return std::expected<T, ArithmeticErrc>
+constexpr auto result = safe_multiply(1000000, 1000000);
+static_assert(!result.has_value());  // overflow detected
+
+// Safe scaled conversions for integer types
+constexpr ScaledUnit<int, LengthTag, std::kilo> km{3000000};
+constexpr auto base = safe_to_base(km);
+static_assert(base.error() == ArithmeticErrc::overflow);  // 3000000 * 1000 overflows int
+
+// Normal case works fine
+constexpr ScaledUnit<int, LengthTag, std::kilo> km5{5};
+constexpr auto base5 = safe_to_base(km5);
+static_assert(base5.value().get() == 5000);
+```
+
 ## Headers
 
 | Header | Description |
@@ -189,6 +237,8 @@ static_assert((a + b).get() == 15.0f);
 | `si_scaled.hpp` | `ScaledUnit<T, Tag, Ratio>`, `from_base()`, `scale_cast()`, aliases |
 | `si_scaled_literals.hpp` | UDLs for scaled units (`_km`, `_cm`, `_mm`, `_hr`, `_ms`, `_kmh`, ...) |
 | `si_chrono.hpp` | `constexpr` conversions: `from_chrono`, `to_chrono`, `from_timespec`, `to_timeval`, etc. |
+| `quantity_point.hpp` | `QuantityPoint<T, Tag, Origin>` affine type for absolute positions |
+| `safe_math.hpp` | `safe_multiply`, `safe_add`, `safe_divide`, `safe_to_base`, etc. with `std::expected` |
 | `fmt.hpp` | Opt-in `fmt::formatter` specializations (requires linking `fmt::fmt`) |
 | `aligned_array.hpp` | `AlignedArray<T, N>` for cache-friendly SIMD-like math |
 
@@ -273,6 +323,13 @@ All product rules are commutative (`A * B` and `B * A` both work). All same-tag 
 |----------|-------------|
 | `from_base<TargetScaled>(unit_t<T, Tag>)` | Convert base unit to scaled (e.g. `1000.0_m` -> `Kilometers{1.0}`) |
 | `scale_cast<TargetScaled>(ScaledUnit)` | Convert between scales with explicit cast (e.g. `2_hr` -> `Minutes{120}`) |
+| `safe_multiply(T, T)` | Checked integer multiply → `std::expected<T, ArithmeticErrc>` |
+| `safe_add(T, T)` | Checked integer add → `std::expected<T, ArithmeticErrc>` |
+| `safe_subtract(T, T)` | Checked integer subtract → `std::expected<T, ArithmeticErrc>` |
+| `safe_divide(T, T)` | Checked divide (int + float) → `std::expected<T, ArithmeticErrc>` |
+| `safe_to_base(ScaledUnit<int,...>)` | Overflow-safe `to_base()` for integer scaled units |
+| `safe_from_base<TargetScaled>(unit_t<int,...>)` | Overflow/truncation-safe `from_base()` for integers |
+| `safe_scale_cast<TargetScaled>(ScaledUnit<int,...>)` | Overflow-safe `scale_cast()` for integers |
 
 ### Base Unit UDLs (`si_literals`)
 
@@ -280,8 +337,20 @@ All product rules are commutative (`A * B` and `B * A` both work). All same-tag 
 
 ## Tests
 
+Tests are opt-in (off by default) to avoid polluting consumer builds via FetchContent:
+
 ```bash
-cmake -B build && cmake --build build && ctest --test-dir build
+cmake -B build -DBUILD_TESTING=ON && cmake --build build && ctest --test-dir build
 ```
 
 The compile-time tests verify all `static_assert` checks pass. The optional `fmt_test` (requires `libfmt`) uses doctest for runtime checks.
+
+### Fuzz testing
+
+Fuzz tests use libFuzzer (requires Clang):
+
+```bash
+cmake -B build -DBUILD_FUZZING=ON && cmake --build build
+./build/fuzz_safe_math corpus/safe_math -max_total_time=60
+./build/fuzz_quantity_point corpus/quantity_point -max_total_time=60
+```

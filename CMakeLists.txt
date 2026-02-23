@@ -91,52 +91,78 @@ set(STRONG_TYPES_MSVC_WARNINGS
     /permissive-
 )
 
-# Test executable
-enable_testing()
+# ---- Reusable function to apply warnings to a target ----
 
-add_executable(${PROJECT_NAME}_test
-    test/strong_types_test.cpp
-    test/si_test.cpp
-    test/si_literals_test.cpp
-    test/strong_aligned_array_test.cpp
-    test/si_scaled_test.cpp
-    test/si_chrono_test.cpp
-    test/edge_cases_test.cpp
-)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
+function(strong_types_set_warnings target)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${target} PRIVATE ${STRONG_TYPES_GCC_WARNINGS})
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${target} PRIVATE ${STRONG_TYPES_CLANG_WARNINGS})
+    elseif(MSVC)
+        target_compile_options(${target} PRIVATE ${STRONG_TYPES_MSVC_WARNINGS})
+    endif()
+endfunction()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(${PROJECT_NAME}_test PRIVATE ${STRONG_TYPES_GCC_WARNINGS})
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(${PROJECT_NAME}_test PRIVATE ${STRONG_TYPES_CLANG_WARNINGS})
-elseif(MSVC)
-    target_compile_options(${PROJECT_NAME}_test PRIVATE ${STRONG_TYPES_MSVC_WARNINGS})
+# Tests (opt-in: pass -DBUILD_TESTING=ON to build)
+option(BUILD_TESTING "Build tests" OFF)
+include(CTest)
+
+if(BUILD_TESTING)
+    add_executable(${PROJECT_NAME}_test
+        test/strong_types_test.cpp
+        test/si_test.cpp
+        test/si_literals_test.cpp
+        test/strong_aligned_array_test.cpp
+        test/si_scaled_test.cpp
+        test/si_chrono_test.cpp
+        test/edge_cases_test.cpp
+        test/quantity_point_test.cpp
+        test/safe_math_test.cpp
+    )
+    target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
+    strong_types_set_warnings(${PROJECT_NAME}_test)
+
+    add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
+
+    # Optional fmt test (only built when fmt is available)
+    find_package(fmt QUIET)
+    if(fmt_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(doctest
+            GIT_REPOSITORY https://github.com/doctest/doctest.git
+            GIT_TAG v2.4.11
+        )
+        FetchContent_MakeAvailable(doctest)
+
+        add_executable(${PROJECT_NAME}_fmt_test test/fmt_test.cpp)
+        target_link_libraries(${PROJECT_NAME}_fmt_test PRIVATE ${PROJECT_NAME} fmt::fmt doctest::doctest)
+        strong_types_set_warnings(${PROJECT_NAME}_fmt_test)
+
+        add_test(NAME ${PROJECT_NAME}_fmt_test COMMAND ${PROJECT_NAME}_fmt_test)
+    endif()
 endif()
 
-add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
+# Fuzz testing (opt-in: pass -DBUILD_FUZZING=ON, requires Clang with libFuzzer)
+option(BUILD_FUZZING "Build fuzz tests (requires Clang with libFuzzer)" OFF)
 
-# Optional fmt test (only built when fmt is available)
-find_package(fmt QUIET)
-if(fmt_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(doctest
-        GIT_REPOSITORY https://github.com/doctest/doctest.git
-        GIT_TAG v2.4.11
-    )
-    FetchContent_MakeAvailable(doctest)
-
-    add_executable(${PROJECT_NAME}_fmt_test test/fmt_test.cpp)
-    target_link_libraries(${PROJECT_NAME}_fmt_test PRIVATE ${PROJECT_NAME} fmt::fmt doctest::doctest)
-
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        target_compile_options(${PROJECT_NAME}_fmt_test PRIVATE ${STRONG_TYPES_GCC_WARNINGS})
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        target_compile_options(${PROJECT_NAME}_fmt_test PRIVATE ${STRONG_TYPES_CLANG_WARNINGS})
-    elseif(MSVC)
-        target_compile_options(${PROJECT_NAME}_fmt_test PRIVATE ${STRONG_TYPES_MSVC_WARNINGS})
+if(BUILD_FUZZING)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "Fuzz testing requires Clang (libFuzzer)")
     endif()
 
-    add_test(NAME ${PROJECT_NAME}_fmt_test COMMAND ${PROJECT_NAME}_fmt_test)
+    set(FUZZ_FLAGS -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer)
+
+    add_executable(fuzz_safe_math test/fuzz_safe_math.cpp)
+    target_link_libraries(fuzz_safe_math PRIVATE ${PROJECT_NAME})
+    target_compile_options(fuzz_safe_math PRIVATE ${FUZZ_FLAGS})
+    target_link_options(fuzz_safe_math PRIVATE ${FUZZ_FLAGS})
+    strong_types_set_warnings(fuzz_safe_math)
+
+    add_executable(fuzz_quantity_point test/fuzz_quantity_point.cpp)
+    target_link_libraries(fuzz_quantity_point PRIVATE ${PROJECT_NAME})
+    target_compile_options(fuzz_quantity_point PRIVATE ${FUZZ_FLAGS})
+    target_link_options(fuzz_quantity_point PRIVATE ${FUZZ_FLAGS})
+    strong_types_set_warnings(fuzz_quantity_point)
 endif()
 
 # Handle "Manually-specified variables were not used by the project" warning.
