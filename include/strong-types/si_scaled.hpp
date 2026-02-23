@@ -244,6 +244,8 @@ template <typename T>
 using Milliseconds = ScaledUnit<T, TimeTag, std::milli>;
 template <typename T>
 using Microseconds = ScaledUnit<T, TimeTag, std::micro>;
+template <typename T>
+using Nanoseconds = ScaledUnit<T, TimeTag, std::nano>;
 
 // Mass (base = kilograms)
 template <typename T>

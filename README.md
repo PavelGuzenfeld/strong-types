@@ -89,6 +89,31 @@ fmt::print("{:.1f}\n", 3.14159_km); // "3.1 km"
 fmt::print("{}\n", 500.0_ms);       // "500 ms"
 ```
 
+### Chrono / timespec / timeval interop
+
+```cpp
+#include "strong-types/si_chrono.hpp"
+#include "strong-types/si_literals.hpp"
+#include "strong-types/si_scaled_literals.hpp"
+
+using namespace strong_types;
+using namespace strong_types::si_literals;
+using namespace strong_types::si_scaled_literals;
+
+// chrono → strong types
+constexpr auto dur = from_chrono(std::chrono::milliseconds(500));
+static_assert(dur.get() == 0.5);  // 500ms → 0.5s
+
+// strong types → chrono
+constexpr auto ms = to_chrono(250.0_ms);
+static_assert(ms.count() == 250.0);  // Milliseconds<double> → chrono ms
+
+// timespec round-trip
+constexpr struct timespec ts = {2, 500000000L};
+constexpr auto secs = from_timespec(ts);
+static_assert(secs.get() == 2.5);
+```
+
 ### Custom strong types
 
 ```cpp
@@ -110,7 +135,8 @@ static_assert((a + b).get() == 15.0f);
 | `si.hpp` | SI tags (`LengthTag`, `MassTag`, ...) and dimensional trait rules |
 | `si_literals.hpp` | UDLs for base units (`_m`, `_kg`, `_s`, `_mps`, `_N`, ...) |
 | `si_scaled.hpp` | `ScaledUnit<T, Tag, Ratio>` with aliases (`Kilometers`, `Milliseconds`, ...) |
-| `si_scaled_literals.hpp` | UDLs for scaled units (`_km`, `_cm`, `_mm`, `_hr`, `_ms`, ...) |
+| `si_scaled_literals.hpp` | UDLs for scaled units (`_km`, `_cm`, `_mm`, `_hr`, `_ms`, `_ns`, ...) |
+| `si_chrono.hpp` | `constexpr` conversions: `from_chrono`, `to_chrono`, `from_timespec`, `to_timeval`, etc. |
 | `fmt.hpp` | Opt-in `fmt::formatter` specializations (requires linking `fmt::fmt`) |
 | `aligned_array.hpp` | `AlignedArray<T, N>` for cache-friendly SIMD-like math |
 

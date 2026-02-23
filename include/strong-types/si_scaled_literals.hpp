@@ -26,6 +26,7 @@ STRONG_TYPES_DEFINE_SCALED_UDL(min, Minutes<double>)
 STRONG_TYPES_DEFINE_SCALED_UDL(hr, Hours<double>)
 STRONG_TYPES_DEFINE_SCALED_UDL(ms, Milliseconds<double>)
 STRONG_TYPES_DEFINE_SCALED_UDL(us, Microseconds<double>)
+STRONG_TYPES_DEFINE_SCALED_UDL(ns, Nanoseconds<double>)
 
 // Mass
 STRONG_TYPES_DEFINE_SCALED_UDL(g, Grams<double>)
