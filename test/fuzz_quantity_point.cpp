@@ -4,6 +4,7 @@
 #include "strong-types/si_literals.hpp"
 #include "strong-types/si_scaled.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
