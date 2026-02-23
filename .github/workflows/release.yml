@@ -14,3 +14,6 @@ jobs:
     uses: PavelGuzenfeld/standard/.github/workflows/auto-release.yml@main
     with:
       enable_provenance: true
+    secrets:
+      app_id: ${{ secrets.RELEASE_APP_ID }}
+      app_private_key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
