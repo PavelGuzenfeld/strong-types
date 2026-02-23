@@ -57,7 +57,7 @@ install(
 )
 
 # Test executable
-add_executable(${PROJECT_NAME}_test test/strong_types_test.cpp test/si_test.cpp test/si_literals_test.cpp test/strong_aligned_array_test.cpp)
+add_executable(${PROJECT_NAME}_test test/strong_types_test.cpp test/si_test.cpp test/si_literals_test.cpp test/strong_aligned_array_test.cpp test/si_scaled_test.cpp)
 target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME})
 add_compile_options(${PROJECT_NAME}_test PRIVATE
             -Wextra            # Enable extra warnings
