@@ -5,7 +5,7 @@
 | Version | Supported |
 |---------|-----------|
 | Latest release | Yes |
-| Previous minor | Best effort |
+| Previous minor | Best-effort |
 | Older | No |
 
 ## Reporting a Vulnerability
