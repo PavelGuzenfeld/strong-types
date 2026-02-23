@@ -4,6 +4,7 @@
 #include <array> // for sanity
 #include <compare>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <type_traits>
 #include <utility>
