@@ -20,6 +20,24 @@ enum class ArithmeticErrc
     truncation
 };
 
+// ---- helpers ----
+
+// UB-safe absolute value: works for INT_MIN (where -a would overflow)
+template <std::integral T>
+[[nodiscard]] constexpr auto unsigned_abs(T val) -> std::make_unsigned_t<T>
+{
+    using U = std::make_unsigned_t<T>;
+    if constexpr (std::is_signed_v<T>)
+    {
+        // Two's complement: -val == ~val + 1, computed in unsigned to avoid UB
+        return val >= 0 ? static_cast<U>(val) : static_cast<U>(~val) + U{1};
+    }
+    else
+    {
+        return val;
+    }
+}
+
 // ---- safe_multiply ----
 
 template <std::integral T>
@@ -30,57 +48,41 @@ template <std::integral T>
         return T{0};
     }
 
+    using U = std::make_unsigned_t<T>;
     constexpr auto max_val = std::numeric_limits<T>::max();
     constexpr auto min_val = std::numeric_limits<T>::min();
 
     if constexpr (std::is_signed_v<T>)
     {
-        // Check for min * -1 overflow (and vice versa)
-        if (a == T{-1})
-        {
-            if (b == min_val)
-            {
-                return std::unexpected{ArithmeticErrc::overflow};
-            }
-            return static_cast<T>(a * b);
-        }
-        if (b == T{-1})
-        {
-            if (a == min_val)
-            {
-                return std::unexpected{ArithmeticErrc::overflow};
-            }
-            return static_cast<T>(a * b);
-        }
+        auto abs_a = unsigned_abs(a);
+        auto abs_b = unsigned_abs(b);
+        bool result_negative = (a > 0) != (b > 0);
 
-        // Both positive or both negative → check overflow
-        if ((a > 0 && b > 0) || (a < 0 && b < 0))
+        if (result_negative)
         {
-            auto abs_a = a > 0 ? a : static_cast<T>(-a);
-            auto abs_b = b > 0 ? b : static_cast<T>(-b);
-            if (abs_a > max_val / abs_b)
+            // Result must fit in [min_val, -1] → abs(result) <= -min_val == unsigned_abs(min_val)
+            auto limit = unsigned_abs(min_val);
+            if (abs_a > limit / abs_b)
             {
-                return std::unexpected{ArithmeticErrc::overflow};
+                return std::unexpected{ArithmeticErrc::underflow};
             }
         }
         else
         {
-            // One positive, one negative → check underflow
-            if (a < 0)
+            // Result must fit in [1, max_val]
+            if (abs_a > static_cast<U>(max_val) / abs_b)
             {
-                if (a < min_val / b)
-                {
-                    return std::unexpected{ArithmeticErrc::underflow};
-                }
-            }
-            else
-            {
-                if (b < min_val / a)
-                {
-                    return std::unexpected{ArithmeticErrc::underflow};
-                }
+                return std::unexpected{ArithmeticErrc::overflow};
             }
         }
+
+        // Compute in unsigned, then convert back (safe: we verified it fits)
+        auto unsigned_result = abs_a * abs_b;
+        if (result_negative)
+        {
+            return static_cast<T>(-static_cast<T>(unsigned_result - U{1}) - T{1});
+        }
+        return static_cast<T>(unsigned_result);
     }
     else
     {
@@ -89,9 +91,8 @@ template <std::integral T>
         {
             return std::unexpected{ArithmeticErrc::overflow};
         }
+        return static_cast<T>(a * b);
     }
-
-    return static_cast<T>(a * b);
 }
 
 // ---- safe_add ----
