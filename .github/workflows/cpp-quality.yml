@@ -25,6 +25,7 @@ jobs:
       ban_new: true
       enable_flawfinder: true
       enable_iwyu: true
+      enable_hardening: true
     permissions:
       actions: read
       contents: read

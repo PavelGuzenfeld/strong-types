@@ -12,6 +12,9 @@ jobs:
     uses: PavelGuzenfeld/standard/.github/workflows/infra-lint.yml@main
     with:
       enable_cmake_lint: true
+      enable_dangerous_workflows: true
+      enable_binary_artifacts: true
+      enable_gitleaks: true
     permissions:
       actions: read
       contents: read
