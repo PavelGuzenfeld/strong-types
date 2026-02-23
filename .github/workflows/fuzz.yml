@@ -17,12 +17,24 @@ jobs:
       - name: Install libstdc++ 14
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libstdc++-14-dev
 
+      - name: Detect GCC toolchain
+        id: gcc
+        run: |
+          # Find highest GCC version with C++ headers installed
+          GCC_VER=$(ls /usr/include/c++/ | sort -V | tail -1)
+          echo "version=${GCC_VER}" >> "$GITHUB_OUTPUT"
+          echo "Using GCC ${GCC_VER} headers from /usr/include/c++/${GCC_VER}/"
+          ls /usr/include/c++/${GCC_VER}/expected || echo "<expected> header not found"
+
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_FUZZING=ON
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_FUZZING=ON
+          -DCMAKE_CXX_FLAGS="--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/${{ steps.gcc.outputs.version }}"
         env:
           CC: clang-18
           CXX: clang++-18
-          CXXFLAGS: --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/14
 
       - name: Build
         run: cmake --build build
