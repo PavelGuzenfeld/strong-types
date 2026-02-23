@@ -7,6 +7,8 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions: read-all
+
 jobs:
   quality:
     uses: PavelGuzenfeld/standard/.github/workflows/cpp-quality.yml@main
