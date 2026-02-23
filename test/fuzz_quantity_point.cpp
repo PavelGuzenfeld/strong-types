@@ -106,8 +106,16 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     std::memcpy(&a, data, sizeof(a));
     std::memcpy(&b, data + sizeof(a), sizeof(b));
 
-    // Skip NaN/Inf inputs — they're not interesting for algebraic checks
+    // Skip NaN/Inf — not interesting for algebraic checks
     if (std::isnan(a) || std::isnan(b) || std::isinf(a) || std::isinf(b))
+    {
+        return 0;
+    }
+
+    // Skip extreme magnitudes where floating-point precision loss makes
+    // algebraic invariants (e.g. (p+d)-p == d) trivially fail
+    constexpr double magnitude_limit = 1e15;
+    if (std::abs(a) > magnitude_limit || std::abs(b) > magnitude_limit)
     {
         return 0;
     }
