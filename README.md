@@ -2,6 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/PavelGuzenfeld/strong-types?label=version&color=blue)](https://github.com/PavelGuzenfeld/strong-types/releases)
 [![Build & Test](https://github.com/PavelGuzenfeld/strong-types/actions/workflows/build-test.yml/badge.svg)](https://github.com/PavelGuzenfeld/strong-types/actions/workflows/build-test.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/PavelGuzenfeld/strong-types/badge)](https://scorecard.dev/viewer/?uri=github.com/PavelGuzenfeld/strong-types)
 
 > Strong types for C++23 — use types like `Length`, `Speed`, or `Strong<Vec2, PositionTag>` and get compiler-verified physical semantics.
 
