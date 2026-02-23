@@ -114,25 +114,25 @@ static_assert(
     }(),
     "safe_to_base: 3000000 km overflows int");
 
-// ---- safe_from_base: normal ----
+// ---- safe_scale_cast from base: normal ----
 
 static_assert(
     [] {
         constexpr auto base = unit_t<int, LengthTag>{5000};
-        constexpr auto result = safe_from_base<ScaledUnit<int, LengthTag, std::kilo>>(base);
+        constexpr auto result = safe_scale_cast<ScaledUnit<int, LengthTag, std::kilo>>(base);
         return result.has_value() && result.value().get() == 5;
     }(),
-    "safe_from_base: 5000 m = 5 km");
+    "safe_scale_cast: 5000 m = 5 km");
 
-// ---- safe_from_base: truncation ----
+// ---- safe_scale_cast from base: truncation ----
 
 static_assert(
     [] {
         constexpr auto base = unit_t<int, LengthTag>{5001};
-        constexpr auto result = safe_from_base<ScaledUnit<int, LengthTag, std::kilo>>(base);
+        constexpr auto result = safe_scale_cast<ScaledUnit<int, LengthTag, std::kilo>>(base);
         return !result.has_value() && result.error() == ArithmeticErrc::truncation;
     }(),
-    "safe_from_base: 5001 m doesn't convert cleanly to km");
+    "safe_scale_cast: 5001 m doesn't convert cleanly to km");
 
 // ---- safe_scale_cast: normal ----
 

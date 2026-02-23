@@ -118,9 +118,9 @@ static_assert(d.to_base().get() == 5000.0);  // 5 km = 5000 m
 constexpr auto t = 1.0_hr;
 static_assert(t.in<std::ratio<60>>().get() == 60.0);  // 1 hr = 60 min
 
-// from_base: convert base unit back to scaled
+// scale_cast: convert base unit to scaled
 constexpr auto meters = unit_t<double, LengthTag>{1000.0};
-constexpr auto km = from_base<Kilometers<double>>(meters);
+constexpr auto km = scale_cast<Kilometers<double>>(meters);
 static_assert(km.get() == 1.0);  // 1000 m = 1 km
 
 // scale_cast: convert between different scales
@@ -234,7 +234,7 @@ static_assert(base5.value().get() == 5000);
 | `strong.hpp` | `Strong<T, Tag>` wrapper, arithmetic ops, type traits |
 | `si.hpp` | SI tags (`LengthTag`, `MassTag`, `PowerTag`, ...) and dimensional trait rules |
 | `si_literals.hpp` | UDLs for base units (`_m`, `_kg`, `_s`, `_W`, `_Pa`, ...) |
-| `si_scaled.hpp` | `ScaledUnit<T, Tag, Ratio>`, `from_base()`, `scale_cast()`, aliases |
+| `si_scaled.hpp` | `ScaledUnit<T, Tag, Ratio>`, `scale_cast()`, aliases |
 | `si_scaled_literals.hpp` | UDLs for scaled units (`_km`, `_cm`, `_mm`, `_hr`, `_ms`, `_kmh`, ...) |
 | `si_chrono.hpp` | `constexpr` conversions: `from_chrono`, `to_chrono`, `from_timespec`, `to_timeval`, etc. |
 | `quantity_point.hpp` | `QuantityPoint<T, Tag, Origin>` affine type for absolute positions |
@@ -321,15 +321,15 @@ All product rules are commutative (`A * B` and `B * A` both work). All same-tag 
 
 | Function | Description |
 |----------|-------------|
-| `from_base<TargetScaled>(unit_t<T, Tag>)` | Convert base unit to scaled (e.g. `1000.0_m` -> `Kilometers{1.0}`) |
-| `scale_cast<TargetScaled>(ScaledUnit)` | Convert between scales with explicit cast (e.g. `2_hr` -> `Minutes{120}`) |
+| `scale_cast<TargetScaled>(unit_t<T, Tag>)` | Convert base unit to scaled (e.g. `1000.0_m` -> `Kilometers{1.0}`) |
+| `scale_cast<TargetScaled>(ScaledUnit)` | Convert between scales (e.g. `2_hr` -> `Minutes{120}`) |
 | `safe_multiply(T, T)` | Checked integer multiply → `std::expected<T, ArithmeticErrc>` |
 | `safe_add(T, T)` | Checked integer add → `std::expected<T, ArithmeticErrc>` |
 | `safe_subtract(T, T)` | Checked integer subtract → `std::expected<T, ArithmeticErrc>` |
 | `safe_divide(T, T)` | Checked divide (int + float) → `std::expected<T, ArithmeticErrc>` |
 | `safe_to_base(ScaledUnit<int,...>)` | Overflow-safe `to_base()` for integer scaled units |
-| `safe_from_base<TargetScaled>(unit_t<int,...>)` | Overflow/truncation-safe `from_base()` for integers |
-| `safe_scale_cast<TargetScaled>(ScaledUnit<int,...>)` | Overflow-safe `scale_cast()` for integers |
+| `safe_scale_cast<TargetScaled>(unit_t<int,...>)` | Overflow/truncation-safe base-to-scaled for integers |
+| `safe_scale_cast<TargetScaled>(ScaledUnit<int,...>)` | Overflow-safe scale-to-scale for integers |
 
 ### Base Unit UDLs (`si_literals`)
 
