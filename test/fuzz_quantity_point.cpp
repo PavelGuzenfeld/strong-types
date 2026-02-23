@@ -18,14 +18,17 @@ struct TestOrigin
 using Point = QuantityPoint<double, LengthTag, TestOrigin>;
 using Disp = unit_t<double, LengthTag>;
 
-static bool approx_eq(double a, double b)
+// Tolerance relative to the computation's magnitude, not just the result.
+// `scale` should reflect the magnitude of intermediate values (e.g. the operands
+// of a subtraction that may cancel), not just the final result.
+static bool approx_eq(double a, double b, double scale = 0.0)
 {
     if (std::isnan(a) || std::isnan(b) || std::isinf(a) || std::isinf(b))
     {
         return true; // skip degenerate cases, don't trap
     }
     double diff = std::abs(a - b);
-    double mag = std::max(1.0, std::max(std::abs(a), std::abs(b)));
+    double mag = std::max({1.0, std::abs(a), std::abs(b), scale});
     return diff <= mag * 1e-10;
 }
 
@@ -36,7 +39,8 @@ static void check_displacement_recovery(double pv, double dv)
     Disp disp{dv};
     auto shifted = pt + disp;
     auto recovered = shifted - pt;
-    if (!approx_eq(recovered.get(), dv))
+    // Scale by intermediates: shifted = pv+dv, then recovered = shifted-pv (cancellation)
+    if (!approx_eq(recovered.get(), dv, std::abs(pv) + std::abs(dv)))
     {
         __builtin_trap();
     }
@@ -49,7 +53,8 @@ static void check_inverse(double pv, double dv)
     Disp disp{dv};
     auto shifted = pt - disp;
     auto back = shifted + disp;
-    if (!approx_eq(back.get(), pv))
+    // Scale by intermediates: shifted = pv-dv, then back = shifted+dv (cancellation)
+    if (!approx_eq(back.get(), pv, std::abs(pv) + std::abs(dv)))
     {
         __builtin_trap();
     }
@@ -62,7 +67,8 @@ static void check_anti_symmetry(double v1, double v2)
     Point p2{v2};
     auto d12 = p1 - p2;
     auto d21 = p2 - p1;
-    if (!approx_eq(d12.get(), -d21.get()))
+    // Both subtractions involve the same magnitudes
+    if (!approx_eq(d12.get(), -d21.get(), std::abs(v1) + std::abs(v2)))
     {
         __builtin_trap();
     }
@@ -75,7 +81,8 @@ static void check_scaled_add(double pv, double sv)
     Kilometers<double> km{sv};
     auto shifted = pt + km;
     auto expected = pv + sv * 1000.0;
-    if (!approx_eq(shifted.get(), expected))
+    // Scale includes the km→m conversion
+    if (!approx_eq(shifted.get(), expected, std::abs(pv) + std::abs(sv) * 1000.0))
     {
         __builtin_trap();
     }
@@ -88,7 +95,8 @@ static void check_commutative(double pv, double dv)
     Disp disp{dv};
     auto lhs = pt + disp;
     auto rhs = disp + pt;
-    if (!approx_eq(lhs.get(), rhs.get()))
+    // Same operation both ways, scale by operand magnitudes
+    if (!approx_eq(lhs.get(), rhs.get(), std::abs(pv) + std::abs(dv)))
     {
         __builtin_trap();
     }
@@ -112,9 +120,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
-    // Skip extreme magnitudes where floating-point precision loss makes
-    // algebraic invariants (e.g. (p+d)-p == d) trivially fail
-    constexpr double magnitude_limit = 1e15;
+    // Skip extreme magnitudes that would overflow to inf in check_scaled_add (×1000)
+    constexpr double magnitude_limit = 1e300;
     if (std::abs(a) > magnitude_limit || std::abs(b) > magnitude_limit)
     {
         return 0;
