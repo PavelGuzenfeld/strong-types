@@ -4,11 +4,12 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   sync:
+    permissions:
+      contents: write
     uses: PavelGuzenfeld/standard/.github/workflows/version-sync.yml@main
     with:
       tag: ${{ github.event.release.tag_name }}
