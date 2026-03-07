@@ -63,7 +63,7 @@
 include(FetchContent)
 FetchContent_Declare(strong-types
     GIT_REPOSITORY https://github.com/PavelGuzenfeld/strong-types.git
-    GIT_TAG v0.2.7
+    GIT_TAG v0.2.8
 )
 FetchContent_MakeAvailable(strong-types)
 
