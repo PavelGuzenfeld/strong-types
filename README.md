@@ -355,3 +355,7 @@ cmake -B build -DBUILD_FUZZING=ON && cmake --build build
 ./build/fuzz_safe_math corpus/safe_math -max_total_time=60
 ./build/fuzz_quantity_point corpus/quantity_point -max_total_time=60
 ```
+
+---
+
+> **[Documentation and design notes on pavelguzenfeld.com](https://pavelguzenfeld.com/projects/strong-types/)**
