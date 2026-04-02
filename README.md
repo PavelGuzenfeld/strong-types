@@ -359,3 +359,46 @@ cmake -B build -DBUILD_FUZZING=ON && cmake --build build
 ---
 
 > **[Documentation and design notes on pavelguzenfeld.com](https://pavelguzenfeld.com/projects/strong-types/)**
+
+### Cross-Tag Arithmetic for Domain Types
+
+The SI types define dimensional algebra rules automatically. For custom domain types,
+you can opt in to cross-tag arithmetic by specializing the tag traits:
+
+```cpp
+struct HullPointsTag {};
+struct DamagePointsTag {};
+
+using HullPoints = strong_types::Strong<double, HullPointsTag>;
+using DamagePoints = strong_types::Strong<double, DamagePointsTag>;
+
+// HullPoints - DamagePoints = HullPoints
+template<>
+struct strong_types::tag_difference_result<HullPointsTag, DamagePointsTag>
+{
+    using type = HullPointsTag;
+};
+
+// Now this compiles:
+HullPoints hp{100.0};
+DamagePoints dmg{30.0};
+HullPoints remaining = hp - dmg;  // = HullPoints{70.0}
+```
+
+By default, arithmetic between different tags is rejected at compile time.
+This is the correct default — opt in only when the relationship is meaningful.
+
+### Widening Integer Construction
+
+`Strong<uint64_t, Tag>` now accepts smaller integer types without explicit casting:
+
+```cpp
+struct MyTag {};
+using MyId = strong_types::Strong<uint64_t, MyTag>;
+
+MyId a{42};        // OK — int widens to uint64_t
+MyId b{42u};       // OK — unsigned int widens
+MyId c{uint64_t{42}};  // OK — exact match (always worked)
+```
+
+Narrowing conversions (e.g., `double` to `int`) are still rejected at compile time.
