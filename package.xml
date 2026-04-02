@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>strong-types</name>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
   <description>Strong compile time type C++</description>
   <maintainer email="me@pavelguzenfeld.com">Pavel Guzenfeld</maintainer>
   <license>MIT</license>
