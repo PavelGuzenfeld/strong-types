@@ -38,8 +38,19 @@ struct Strong
     {
     }
 
+    // Allow widening integer conversions (e.g., int -> uint64_t, short -> long)
     template <typename U>
-        requires(!std::same_as<std::remove_cvref_t<U>, T>)
+        requires(!std::same_as<std::remove_cvref_t<U>, T> &&
+                 std::is_integral_v<T> && std::is_integral_v<std::remove_cvref_t<U>> &&
+                 (sizeof(std::remove_cvref_t<U>) <= sizeof(T)))
+    constexpr explicit Strong(U value) noexcept : value_(static_cast<T>(value))
+    {
+    }
+
+    template <typename U>
+        requires(!std::same_as<std::remove_cvref_t<U>, T> &&
+                 !(std::is_integral_v<T> && std::is_integral_v<std::remove_cvref_t<U>> &&
+                   (sizeof(std::remove_cvref_t<U>) <= sizeof(T))))
     explicit Strong(U && /*unused*/) // NOLINT(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
     {
         static_assert(always_false_v<U>,
