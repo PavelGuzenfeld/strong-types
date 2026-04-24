@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(strong-types VERSION 1.1.4 LANGUAGES CXX)
+project(strong-types VERSION 1.1.5 LANGUAGES CXX)
 
 # Handle "Manually-specified variables were not used by the project" warning.
 unset(CATKIN_INSTALL_INTO_PREFIX_ROOT)
