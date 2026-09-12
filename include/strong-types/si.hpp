@@ -5,257 +5,132 @@
 namespace strong_types
 {
 
-    // SI base + derived tags
-    struct LengthTag;
-    struct MassTag;
-    struct TimeTag;
-    struct AreaTag;
-    struct SpeedTag;
-    struct AccelerationTag;
-    struct ForceTag;
-    struct EnergyTag;
-    struct HertzTag;
-    struct CelsiusTag;
-    struct VoltTag;
-    struct RadianTag;
-    struct SteradianTag;
-    struct PowerTag;
-    struct PressureTag;
-    struct AngularVelocityTag;
-    struct VolumeTag;
-    struct DensityTag;
-    struct TorqueTag;
+// ---- dimension exponent vector ----
 
-    // alias
-    template <typename T, typename Tag>
-    using unit_t = Strong<T, Tag>;
+// Exponents of length, mass, time, current, temperature, amount, luminous intensity, plane angle.
+// Angle is a dimension here so Hertz differs from AngularVelocity and Energy from Torque (J/rad).
+template <int L = 0, int M = 0, int T = 0, int I = 0, int Th = 0, int N = 0, int J = 0, int A = 0>
+struct Dim
+{
+    using dimension = Dim;
+};
 
-    // --- tag-level traits ---
-    template <typename L, typename R>
-    struct tag_sum_result;
-    template <typename L, typename R>
-    struct tag_difference_result;
-    template <typename L, typename R>
-    struct tag_product_result;
-    template <typename L, typename R>
-    struct tag_quotient_result;
+template <typename Lhs, typename Rhs>
+struct dim_product;
+template <int... L, int... R>
+struct dim_product<Dim<L...>, Dim<R...>>
+{
+    using type = Dim<(L + R)...>;
+};
 
-    template <>
-    struct tag_quotient_result<void, TimeTag>
-    {
-        using type = HertzTag;
-    };
+template <typename Lhs, typename Rhs>
+struct dim_quotient;
+template <int... L, int... R>
+struct dim_quotient<Dim<L...>, Dim<R...>>
+{
+    using type = Dim<(L - R)...>;
+};
 
-#define DEFINE_ADD_SUB(Tag)                \
-    template <>                            \
-    struct tag_sum_result<Tag, Tag>        \
-    {                                      \
-        using type = Tag;                  \
-    };                                     \
-    template <>                            \
-    struct tag_difference_result<Tag, Tag> \
-    {                                      \
-        using type = Tag;                  \
+// ---- tag -> dimension; void is the scalar tag ----
+
+template <typename Tag>
+struct dimension_of;
+
+template <typename Tag>
+    requires requires { typename Tag::dimension; }
+struct dimension_of<Tag>
+{
+    using type = typename Tag::dimension;
+};
+
+template <>
+struct dimension_of<void>
+{
+    using type = Dim<>;
+};
+
+template <typename Tag>
+concept Dimensioned = requires { typename dimension_of<Tag>::type; };
+
+// ---- dimension -> result tag; an unnamed dimension is its own tag ----
+
+template <typename D>
+struct canonical_tag
+{
+    using type = D;
+};
+
+template <>
+struct canonical_tag<Dim<>>
+{
+    using type = void;
+};
+
+// ---- SI tags: each owns its dimension and is the result tag for it ----
+
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+#define STRONG_TYPES_SI_TAG(Tag, ...)                                                                                  \
+    struct Tag : Dim<__VA_ARGS__>                                                                                      \
+    {                                                                                                                  \
+    };                                                                                                                 \
+    template <>                                                                                                        \
+    struct canonical_tag<Dim<__VA_ARGS__>>                                                                             \
+    {                                                                                                                  \
+        using type = Tag;                                                                                              \
     }
 
-    DEFINE_ADD_SUB(LengthTag);
-    DEFINE_ADD_SUB(MassTag);
-    DEFINE_ADD_SUB(TimeTag);
-    DEFINE_ADD_SUB(SpeedTag);
-    DEFINE_ADD_SUB(AccelerationTag);
-    DEFINE_ADD_SUB(ForceTag);
-    DEFINE_ADD_SUB(EnergyTag);
-    DEFINE_ADD_SUB(AreaTag);
-    DEFINE_ADD_SUB(HertzTag);
-    DEFINE_ADD_SUB(CelsiusTag);
-    DEFINE_ADD_SUB(VoltTag);
-    DEFINE_ADD_SUB(RadianTag);
-    DEFINE_ADD_SUB(SteradianTag);
-    DEFINE_ADD_SUB(PowerTag);
-    DEFINE_ADD_SUB(PressureTag);
-    DEFINE_ADD_SUB(AngularVelocityTag);
-    DEFINE_ADD_SUB(VolumeTag);
-    DEFINE_ADD_SUB(DensityTag);
-    DEFINE_ADD_SUB(TorqueTag);
-#undef DEFINE_ADD_SUB
+STRONG_TYPES_SI_TAG(LengthTag, 1);
+STRONG_TYPES_SI_TAG(MassTag, 0, 1);
+STRONG_TYPES_SI_TAG(TimeTag, 0, 0, 1);
+STRONG_TYPES_SI_TAG(AreaTag, 2);
+STRONG_TYPES_SI_TAG(VolumeTag, 3);
+STRONG_TYPES_SI_TAG(SpeedTag, 1, 0, -1);
+STRONG_TYPES_SI_TAG(AccelerationTag, 1, 0, -2);
+STRONG_TYPES_SI_TAG(ForceTag, 1, 1, -2);
+STRONG_TYPES_SI_TAG(PressureTag, -1, 1, -2);
+STRONG_TYPES_SI_TAG(EnergyTag, 2, 1, -2);
+STRONG_TYPES_SI_TAG(PowerTag, 2, 1, -3);
+STRONG_TYPES_SI_TAG(HertzTag, 0, 0, -1);
+STRONG_TYPES_SI_TAG(DensityTag, -3, 1);
+STRONG_TYPES_SI_TAG(VoltTag, 2, 1, -3, -1);
+STRONG_TYPES_SI_TAG(CelsiusTag, 0, 0, 0, 0, 1);
+STRONG_TYPES_SI_TAG(RadianTag, 0, 0, 0, 0, 0, 0, 0, 1);
+STRONG_TYPES_SI_TAG(SteradianTag, 0, 0, 0, 0, 0, 0, 0, 2);
+STRONG_TYPES_SI_TAG(AngularVelocityTag, 0, 0, -1, 0, 0, 0, 0, 1);
+STRONG_TYPES_SI_TAG(TorqueTag, 2, 1, -2, 0, 0, 0, 0, -1);
+#undef STRONG_TYPES_SI_TAG
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
-    // ---- same-tag quotient → scalar ----
+// alias
+template <typename T, typename Tag>
+using unit_t = Strong<T, Tag>;
 
-#define DEFINE_SELF_QUOTIENT(Tag)                    \
-    template <>                                      \
-    struct tag_quotient_result<Tag, Tag>             \
-    {                                                \
-        using type = void;                           \
-    }
+// ---- tag algebra for dimensioned tags; explicit specializations still override ----
 
-    DEFINE_SELF_QUOTIENT(LengthTag);
-    DEFINE_SELF_QUOTIENT(MassTag);
-    DEFINE_SELF_QUOTIENT(TimeTag);
-    DEFINE_SELF_QUOTIENT(SpeedTag);
-    DEFINE_SELF_QUOTIENT(AccelerationTag);
-    DEFINE_SELF_QUOTIENT(ForceTag);
-    DEFINE_SELF_QUOTIENT(EnergyTag);
-    DEFINE_SELF_QUOTIENT(AreaTag);
-    DEFINE_SELF_QUOTIENT(HertzTag);
-    DEFINE_SELF_QUOTIENT(RadianTag);
-    DEFINE_SELF_QUOTIENT(SteradianTag);
-    DEFINE_SELF_QUOTIENT(PowerTag);
-    DEFINE_SELF_QUOTIENT(PressureTag);
-    DEFINE_SELF_QUOTIENT(AngularVelocityTag);
-    DEFINE_SELF_QUOTIENT(VolumeTag);
-    DEFINE_SELF_QUOTIENT(DensityTag);
-    DEFINE_SELF_QUOTIENT(TorqueTag);
-#undef DEFINE_SELF_QUOTIENT
+template <Dimensioned Tag>
+struct tag_sum_result<Tag, Tag>
+{
+    using type = Tag;
+};
 
-    // ---- tag-level product results ----
-    template <>
-    struct tag_product_result<LengthTag, LengthTag>
-    {
-        using type = AreaTag;
-    };
-    template <>
-    struct tag_product_result<SpeedTag, TimeTag>
-    {
-        using type = LengthTag;
-    };
-    template <>
-    struct tag_product_result<MassTag, AccelerationTag>
-    {
-        using type = ForceTag;
-    };
-    template <>
-    struct tag_product_result<ForceTag, LengthTag>
-    {
-        using type = EnergyTag;
-    };
-    template <>
-    struct tag_product_result<PowerTag, TimeTag>
-    {
-        using type = EnergyTag;
-    };
-    template <>
-    struct tag_product_result<PressureTag, AreaTag>
-    {
-        using type = ForceTag;
-    };
-    template <>
-    struct tag_product_result<AngularVelocityTag, TimeTag>
-    {
-        using type = RadianTag;
-    };
-    template <>
-    struct tag_product_result<LengthTag, AreaTag>
-    {
-        using type = VolumeTag;
-    };
-    template <>
-    struct tag_product_result<DensityTag, VolumeTag>
-    {
-        using type = MassTag;
-    };
-    template <>
-    struct tag_product_result<TorqueTag, AngularVelocityTag>
-    {
-        using type = PowerTag;
-    };
+template <Dimensioned Tag>
+struct tag_difference_result<Tag, Tag>
+{
+    using type = Tag;
+};
 
-    // commutative
-    template <>
-    struct tag_product_result<TimeTag, SpeedTag>
-    {
-        using type = LengthTag;
-    };
-    template <>
-    struct tag_product_result<AccelerationTag, MassTag>
-    {
-        using type = ForceTag;
-    };
-    template <>
-    struct tag_product_result<LengthTag, ForceTag>
-    {
-        using type = EnergyTag;
-    };
-    template <>
-    struct tag_product_result<TimeTag, PowerTag>
-    {
-        using type = EnergyTag;
-    };
-    template <>
-    struct tag_product_result<AreaTag, PressureTag>
-    {
-        using type = ForceTag;
-    };
-    template <>
-    struct tag_product_result<TimeTag, AngularVelocityTag>
-    {
-        using type = RadianTag;
-    };
-    template <>
-    struct tag_product_result<AreaTag, LengthTag>
-    {
-        using type = VolumeTag;
-    };
-    template <>
-    struct tag_product_result<VolumeTag, DensityTag>
-    {
-        using type = MassTag;
-    };
-    template <>
-    struct tag_product_result<AngularVelocityTag, TorqueTag>
-    {
-        using type = PowerTag;
-    };
+template <Dimensioned L, Dimensioned R>
+struct tag_product_result<L, R>
+{
+    using type = typename canonical_tag<
+        typename dim_product<typename dimension_of<L>::type, typename dimension_of<R>::type>::type>::type;
+};
 
-    // ---- tag-level quotient results ----
-    template <>
-    struct tag_quotient_result<LengthTag, TimeTag>
-    {
-        using type = SpeedTag;
-    };
-    template <>
-    struct tag_quotient_result<SpeedTag, TimeTag>
-    {
-        using type = AccelerationTag;
-    };
-    template <>
-    struct tag_quotient_result<EnergyTag, TimeTag>
-    {
-        using type = PowerTag;
-    };
-    template <>
-    struct tag_quotient_result<ForceTag, AreaTag>
-    {
-        using type = PressureTag;
-    };
-    template <>
-    struct tag_quotient_result<RadianTag, TimeTag>
-    {
-        using type = AngularVelocityTag;
-    };
-    template <>
-    struct tag_quotient_result<VolumeTag, LengthTag>
-    {
-        using type = AreaTag;
-    };
-    template <>
-    struct tag_quotient_result<VolumeTag, AreaTag>
-    {
-        using type = LengthTag;
-    };
-    template <>
-    struct tag_quotient_result<MassTag, VolumeTag>
-    {
-        using type = DensityTag;
-    };
-    template <>
-    struct tag_quotient_result<PowerTag, AngularVelocityTag>
-    {
-        using type = TorqueTag;
-    };
-    template <>
-    struct tag_quotient_result<PowerTag, TorqueTag>
-    {
-        using type = AngularVelocityTag;
-    };
+template <Dimensioned L, Dimensioned R>
+struct tag_quotient_result<L, R>
+{
+    using type = typename canonical_tag<
+        typename dim_quotient<typename dimension_of<L>::type, typename dimension_of<R>::type>::type>::type;
+};
 
 } // namespace strong_types

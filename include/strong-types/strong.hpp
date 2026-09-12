@@ -40,9 +40,8 @@ struct Strong
 
     // Allow widening integer conversions (e.g., int -> uint64_t, short -> long)
     template <typename U>
-        requires(!std::same_as<std::remove_cvref_t<U>, T> &&
-                 std::is_integral_v<T> && std::is_integral_v<std::remove_cvref_t<U>> &&
-                 (sizeof(std::remove_cvref_t<U>) <= sizeof(T)))
+        requires(!std::same_as<std::remove_cvref_t<U>, T> && std::is_integral_v<T> &&
+                 std::is_integral_v<std::remove_cvref_t<U>> && (sizeof(std::remove_cvref_t<U>) <= sizeof(T)))
     constexpr explicit Strong(U value) noexcept : value_(static_cast<T>(value))
     {
     }
@@ -83,16 +82,40 @@ struct scalar_division_result
 template <typename StrongType, Scalar ScalarType>
 using scalar_div_result_t = typename scalar_division_result<StrongType, ScalarType>::type;
 
-// ---- tag-level mapping traits ----
+// ---- tag-level mapping traits: a pair without a rule has no ::type ----
 
 template <typename LTag, typename RTag>
-struct tag_sum_result;
+struct tag_sum_result
+{
+};
 template <typename LTag, typename RTag>
-struct tag_difference_result;
+struct tag_difference_result
+{
+};
 template <typename LTag, typename RTag>
-struct tag_product_result;
+struct tag_product_result
+{
+};
 template <typename LTag, typename RTag>
-struct tag_quotient_result;
+struct tag_quotient_result
+{
+};
+
+// A void tag is dimensionless: the result is the bare representation
+template <typename T, typename Tag>
+using tagged_t = std::conditional_t<std::is_void_v<Tag>, T, Strong<T, Tag>>;
+
+template <typename T, typename Rule>
+struct tagged_result
+{
+};
+
+template <typename T, typename Rule>
+    requires requires { typename Rule::type; }
+struct tagged_result<T, Rule>
+{
+    using type = tagged_t<T, typename Rule::type>;
+};
 
 // Generic fallback: only works for Strong types
 template <typename LHS, typename RHS>
@@ -101,9 +124,8 @@ template <typename LHS, typename RHS>
         typename RHS::tag_type;
     }
 struct sum_result
+    : tagged_result<typename LHS::value_type, tag_sum_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
-    using type =
-        Strong<typename LHS::value_type, typename tag_sum_result<typename LHS::tag_type, typename RHS::tag_type>::type>;
 };
 
 template <typename LHS, typename RHS>
@@ -112,9 +134,8 @@ template <typename LHS, typename RHS>
         typename RHS::tag_type;
     }
 struct difference_result
+    : tagged_result<typename LHS::value_type, tag_difference_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
-    using type = Strong<typename LHS::value_type,
-                        typename tag_difference_result<typename LHS::tag_type, typename RHS::tag_type>::type>;
 };
 
 template <typename LHS, typename RHS>
@@ -123,9 +144,8 @@ template <typename LHS, typename RHS>
         typename RHS::tag_type;
     }
 struct product_result
+    : tagged_result<typename LHS::value_type, tag_product_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
-    using type = Strong<typename LHS::value_type,
-                        typename tag_product_result<typename LHS::tag_type, typename RHS::tag_type>::type>;
 };
 
 template <typename LHS, typename RHS>
@@ -134,9 +154,8 @@ template <typename LHS, typename RHS>
         typename RHS::tag_type;
     }
 struct quotient_result
+    : tagged_result<typename LHS::value_type, tag_quotient_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
-    using type = Strong<typename LHS::value_type,
-                        typename tag_quotient_result<typename LHS::tag_type, typename RHS::tag_type>::type>;
 };
 
 // ----- scalar trait specializations ----

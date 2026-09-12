@@ -185,13 +185,11 @@ static_assert(
     }(),
     "same-type product trait failed");
 
-// static_assert([] {
-//     Dummy d1{1.0f};
-//     Dummy2 d2{2.0f};
-//     auto x = d1 + d2; // this should fail to compile — different tags
-//     (void)x;
-//     return true;
-// }(), "invalid tag addition should not compile");
+template <typename A, typename B>
+concept CanAdd = requires(A a, B b) { a + b; };
+
+static_assert(!CanAdd<Dummy, Dummy2>, "tags without a sum rule must not add");
+static_assert(CanAdd<Dummy, Dummy>, "tags with a sum rule add");
 
 static_assert(
     [] {

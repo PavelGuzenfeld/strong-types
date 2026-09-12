@@ -248,56 +248,51 @@ static_assert(base5.value().get() == 5000);
 
 ### SI Tags
 
-| Tag | Base Unit | Description |
-|-----|-----------|-------------|
-| `LengthTag` | m | Length |
-| `MassTag` | kg | Mass |
-| `TimeTag` | s | Time |
-| `AreaTag` | m2 | Area |
-| `SpeedTag` | m/s | Speed |
-| `AccelerationTag` | m/s2 | Acceleration |
-| `ForceTag` | N | Force |
-| `EnergyTag` | J | Energy |
-| `PowerTag` | W | Power |
-| `PressureTag` | Pa | Pressure |
-| `HertzTag` | Hz | Frequency |
-| `CelsiusTag` | degC | Temperature |
-| `VoltTag` | V | Voltage |
-| `RadianTag` | rad | Angle |
-| `SteradianTag` | sr | Solid angle |
-| `AngularVelocityTag` | rad/s | Angular velocity |
-| `VolumeTag` | m3 | Volume |
-| `DensityTag` | kg/m3 | Density |
-| `TorqueTag` | Nm | Torque |
+| Tag | Base Unit | Description | `Dim<L, M, T, I, Θ, N, J, A>` |
+|-----|-----------|-------------|-------------------------------|
+| `LengthTag` | m | Length | `1` |
+| `MassTag` | kg | Mass | `0, 1` |
+| `TimeTag` | s | Time | `0, 0, 1` |
+| `AreaTag` | m2 | Area | `2` |
+| `VolumeTag` | m3 | Volume | `3` |
+| `SpeedTag` | m/s | Speed | `1, 0, -1` |
+| `AccelerationTag` | m/s2 | Acceleration | `1, 0, -2` |
+| `ForceTag` | N | Force | `1, 1, -2` |
+| `PressureTag` | Pa | Pressure | `-1, 1, -2` |
+| `EnergyTag` | J | Energy | `2, 1, -2` |
+| `PowerTag` | W | Power | `2, 1, -3` |
+| `HertzTag` | Hz | Frequency | `0, 0, -1` |
+| `DensityTag` | kg/m3 | Density | `-3, 1` |
+| `VoltTag` | V | Voltage | `2, 1, -3, -1` |
+| `CelsiusTag` | degC | Temperature | `0, 0, 0, 0, 1` |
+| `RadianTag` | rad | Angle | `0, 0, 0, 0, 0, 0, 0, 1` |
+| `SteradianTag` | sr | Solid angle | `0, 0, 0, 0, 0, 0, 0, 2` |
+| `AngularVelocityTag` | rad/s | Angular velocity | `0, 0, -1, 0, 0, 0, 0, 1` |
+| `TorqueTag` | Nm | Torque (J/rad) | `2, 1, -2, 0, 0, 0, 0, -1` |
 
-### Dimensional Algebra Rules
+### Dimensional Algebra
 
-| Expression | Result | Rule |
-|------------|--------|------|
-| `Length / Time` | Speed | `m / s = m/s` |
-| `Speed / Time` | Acceleration | `(m/s) / s = m/s2` |
-| `Speed * Time` | Length | `(m/s) * s = m` |
-| `Mass * Acceleration` | Force | `kg * m/s2 = N` |
-| `Force * Length` | Energy | `N * m = J` |
-| `Energy / Time` | Power | `J / s = W` |
-| `Power * Time` | Energy | `W * s = J` |
-| `Force / Area` | Pressure | `N / m2 = Pa` |
-| `Pressure * Area` | Force | `Pa * m2 = N` |
-| `Radian / Time` | AngularVelocity | `rad / s = rad/s` |
-| `AngularVelocity * Time` | Radian | `(rad/s) * s = rad` |
-| `Length * Length` | Area | `m * m = m2` |
-| `Length * Area` | Volume | `m * m2 = m3` |
-| `Volume / Length` | Area | `m3 / m = m2` |
-| `Volume / Area` | Length | `m3 / m2 = m` |
-| `Mass / Volume` | Density | `kg / m3 = kg/m3` |
-| `Density * Volume` | Mass | `(kg/m3) * m3 = kg` |
-| `Torque * AngularVelocity` | Power | `Nm * rad/s = W` |
-| `Power / AngularVelocity` | Torque | `W / (rad/s) = Nm` |
-| `Power / Torque` | AngularVelocity | `W / Nm = rad/s` |
-| `1 / Time` | Hertz | `1 / s = Hz` |
-| `Tag / Tag` | scalar | same-unit ratio |
+Every SI tag carries a `Dim<L, M, T, I, Θ, N, J, A>` exponent vector: length, mass, time, current,
+temperature, amount, luminous intensity, plane angle. `*` adds exponents, `/` subtracts them, and the
+result is the tag registered for that dimension. No rule is written per pair.
 
-All product rules are commutative (`A * B` and `B * A` both work). All same-tag types support `+` and `-`.
+| Expression | Result |
+|------------|--------|
+| `Length / Speed` | Time |
+| `Force / Mass` | Acceleration |
+| `Energy / Time` | Power |
+| `Radian / Time` | AngularVelocity |
+| `Speed * Speed` | `unit_t<T, Dim<2, 0, -2>>` — no named tag; `* Mass` composes on to Energy |
+| `Hertz * Time` | bare `T` (dimensionless) |
+| `Length / Length` | bare `T` |
+| `1 / Time` | Hertz |
+
+Angle is a dimension, so `Hertz` (s⁻¹) and `AngularVelocity` (rad·s⁻¹) are distinct types and `Torque`
+is J/rad rather than a second name for Energy. `+` and `-` require the same tag: `Energy + Torque` does
+not compile.
+
+A tag without a dimension keeps the explicit trait rules described under "Cross-Tag Arithmetic for
+Domain Types" below. Kinds work the same way: two tags with the same `Dim` stay distinct types.
 
 ### Scaled Unit Aliases
 

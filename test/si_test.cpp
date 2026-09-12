@@ -1,5 +1,6 @@
 #include "strong-types/si.hpp"
 #include <cstdint> // for fixed width integer types
+#include <type_traits>
 
 using namespace strong_types;
 
@@ -186,3 +187,36 @@ static_assert(
         return hz.get() == 2.0;
     }(),
     "✅ correct casting: scalar double / int32_t strong = double hertz");
+
+// ---- derivations follow from dimension exponents, no per-pair rule ----
+
+template <typename A, typename B>
+concept CanAdd = requires(A a, B b) { a + b; };
+
+using Power = unit_t<float, PowerTag>;
+using Torque = unit_t<float, TorqueTag>;
+using AngularVelocity = unit_t<float, AngularVelocityTag>;
+
+static_assert(std::is_same_v<decltype(Length{} / Speed{}), Time>, "Length / Speed = Time (time to target)");
+static_assert((Length{100.0f} / Speed{25.0f}).get() == 4.0f, "100 m at 25 m/s is 4 s");
+static_assert(std::is_same_v<decltype(Area{} / Length{}), Length>, "Area / Length = Length");
+static_assert(std::is_same_v<decltype(Force{} / Mass{}), Acceleration>, "Force / Mass = Acceleration");
+static_assert(std::is_same_v<decltype(Energy{} / Force{}), Length>, "Energy / Force = Length");
+static_assert(std::is_same_v<decltype(Speed{} / Acceleration{}), Time>, "Speed / Acceleration = Time");
+static_assert(std::is_same_v<decltype(Power{} / Force{}), Speed>, "Power / Force = Speed");
+static_assert(std::is_same_v<decltype(Speed{} * Speed{}), unit_t<float, Dim<2, 0, -2>>>,
+              "Speed * Speed is the unnamed dimension m2/s2");
+static_assert(std::is_same_v<decltype(Energy{} / Mass{}), decltype(Speed{} * Speed{})>,
+              "J/kg and m2/s2 are the same dimension");
+static_assert(std::is_same_v<decltype(Speed{} * Speed{} * Mass{}), Energy>,
+              "an unnamed dimension composes back to a named tag");
+static_assert(std::is_same_v<decltype(Hertz{} * Time{}), float>, "dimensionless result is the bare rep");
+static_assert(std::is_same_v<decltype(Radian{} * Radian{}), Steradian>, "rad * rad = sr");
+static_assert(std::is_same_v<decltype(Radian{} / Time{}), AngularVelocity>, "rad / s = rad/s, not Hz");
+static_assert(!std::is_same_v<AngularVelocity, Hertz>, "angular velocity and frequency stay distinct");
+static_assert(std::is_same_v<decltype(Torque{} * AngularVelocity{}), Power>, "Nm * rad/s = W");
+static_assert(std::is_same_v<decltype(Power{} / Torque{}), AngularVelocity>, "W / Nm = rad/s");
+static_assert(std::is_same_v<decltype(Power{} / AngularVelocity{}), Torque>, "W / (rad/s) = Nm");
+static_assert(!CanAdd<Energy, Torque>, "J + Nm must not compile: same dimension, different kind");
+static_assert(!CanAdd<Length, Time>, "m + s must not compile");
+static_assert(!CanAdd<Length, Area>, "m + m2 must not compile");
