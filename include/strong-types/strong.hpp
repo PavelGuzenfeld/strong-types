@@ -30,8 +30,9 @@ concept WideningIntegral =
     std::is_integral_v<To> && std::is_integral_v<std::remove_cvref_t<From>> &&
     !std::same_as<std::remove_cvref_t<From>, To> && (sizeof(std::remove_cvref_t<From>) <= sizeof(To));
 
+// T needs only the operations actually used; each operator is constrained on its own expression.
 template <typename T, typename Tag>
-    requires std::is_default_constructible_v<T> && std::copy_constructible<T> && Arithmetic<T>
+    requires std::is_default_constructible_v<T> && std::copy_constructible<T>
 struct Strong
 {
 
@@ -218,7 +219,8 @@ inline constexpr bool is_strong_v<Strong<T, Tag>> = true;
 // ---- arithmetic ops (tagged only, Strong operands) ----
 
 template <typename LHS, typename RHS>
-    requires is_strong_v<LHS> && requires { typename sum_result<LHS, RHS>::type; }
+    requires is_strong_v<LHS> && requires { typename sum_result<LHS, RHS>::type; } &&
+                 requires(const LHS &a, const RHS &b) { a.get() + b.get(); }
 [[nodiscard]] constexpr auto operator+(const LHS &lhs, const RHS &rhs) -> typename sum_result<LHS, RHS>::type
 {
     using R = common_rep_t<LHS, RHS>;
@@ -226,7 +228,8 @@ template <typename LHS, typename RHS>
 }
 
 template <typename LHS, typename RHS>
-    requires is_strong_v<LHS> && requires { typename difference_result<LHS, RHS>::type; }
+    requires is_strong_v<LHS> && requires { typename difference_result<LHS, RHS>::type; } &&
+                 requires(const LHS &a, const RHS &b) { a.get() - b.get(); }
 [[nodiscard]] constexpr auto operator-(const LHS &lhs, const RHS &rhs) -> typename difference_result<LHS, RHS>::type
 {
     using R = common_rep_t<LHS, RHS>;
@@ -234,7 +237,8 @@ template <typename LHS, typename RHS>
 }
 
 template <typename LHS, typename RHS>
-    requires is_strong_v<LHS> && requires { typename product_result<LHS, RHS>::type; }
+    requires is_strong_v<LHS> && requires { typename product_result<LHS, RHS>::type; } &&
+                 requires(const LHS &a, const RHS &b) { a.get() * b.get(); }
 [[nodiscard]] constexpr auto operator*(const LHS &lhs, const RHS &rhs) -> typename product_result<LHS, RHS>::type
 {
     using R = common_rep_t<LHS, RHS>;
@@ -242,7 +246,8 @@ template <typename LHS, typename RHS>
 }
 
 template <typename LHS, typename RHS>
-    requires is_strong_v<LHS> && requires { typename quotient_result<LHS, RHS>::type; }
+    requires is_strong_v<LHS> && requires { typename quotient_result<LHS, RHS>::type; } &&
+                 requires(const LHS &a, const RHS &b) { a.get() / b.get(); }
 [[nodiscard]] constexpr auto operator/(const LHS &lhs, const RHS &rhs) -> typename quotient_result<LHS, RHS>::type
 {
     using R = common_rep_t<LHS, RHS>;
@@ -255,7 +260,7 @@ concept NotStrong = !is_strong_v<std::remove_cvref_t<S>>;
 // ---- scalar overloads ----
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S>
+    requires NotStrong<S> && requires(const T &t, S s) { t *s; }
 [[nodiscard]] constexpr auto operator*(const Strong<T, TAG> &lhs, S scalar)
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -269,7 +274,7 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S>
+    requires NotStrong<S> && requires(const T &t, S s) { s *t; }
 [[nodiscard]] constexpr auto operator*(S scalar, const Strong<T, TAG> &rhs)
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -283,7 +288,7 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S>
+    requires NotStrong<S> && requires(const T &t, S s) { t / s; }
 [[nodiscard]] constexpr auto operator/(const Strong<T, TAG> &lhs, S scalar) -> scalar_div_result_t<Strong<T, TAG>, S>
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -297,7 +302,7 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S>
+    requires NotStrong<S> && requires(const T &t, S s) { s / t; }
 [[nodiscard]] constexpr auto operator/(S scalar, const Strong<T, TAG> &rhs)
 {
     using result_t = typename quotient_result<Strong<S, void>, Strong<T, TAG>>::type;
@@ -308,6 +313,7 @@ template <typename T, typename TAG, Scalar S>
 // ---- compound assignment ----
 
 template <typename T, typename TAG>
+    requires requires(const Strong<T, TAG> &a) { a + a; }
 constexpr Strong<T, TAG> &operator+=(Strong<T, TAG> &lhs, const Strong<T, TAG> &rhs)
 {
     lhs = lhs + rhs;
@@ -315,6 +321,7 @@ constexpr Strong<T, TAG> &operator+=(Strong<T, TAG> &lhs, const Strong<T, TAG> &
 }
 
 template <typename T, typename TAG>
+    requires requires(const Strong<T, TAG> &a) { a - a; }
 constexpr Strong<T, TAG> &operator-=(Strong<T, TAG> &lhs, const Strong<T, TAG> &rhs)
 {
     lhs = lhs - rhs;
@@ -322,6 +329,7 @@ constexpr Strong<T, TAG> &operator-=(Strong<T, TAG> &lhs, const Strong<T, TAG> &
 }
 
 template <typename T, typename TAG, Scalar S>
+    requires requires(const Strong<T, TAG> &a, S s) { a *s; }
 constexpr Strong<T, TAG> &operator*=(Strong<T, TAG> &lhs, S scalar)
 {
     lhs = lhs * scalar;
@@ -330,7 +338,8 @@ constexpr Strong<T, TAG> &operator*=(Strong<T, TAG> &lhs, S scalar)
 
 // compound assignment for scalar division, only if scalar_div_result matches Strong<T, TAG>
 template <typename T, typename TAG, Scalar S>
-    requires std::is_same_v<scalar_div_result_t<Strong<T, TAG>, S>, Strong<T, TAG>>
+    requires std::is_same_v<scalar_div_result_t<Strong<T, TAG>, S>, Strong<T, TAG>> &&
+             requires(const Strong<T, TAG> &a, S s) { a / s; }
 constexpr Strong<T, TAG> &operator/=(Strong<T, TAG> &lhs, S scalar)
 {
     lhs = lhs / scalar;
@@ -340,12 +349,16 @@ constexpr Strong<T, TAG> &operator/=(Strong<T, TAG> &lhs, S scalar)
 // ---- unary ----
 
 template <typename T, typename TAG>
+    requires requires(const T &t) { -t; }
 [[nodiscard]] constexpr Strong<T, TAG> operator-(const Strong<T, TAG> &val)
 {
     return Strong<T, TAG>(-val.get());
 }
 
 template <typename T, typename TAG>
+    requires requires(const T &t) {
+        { t == t } -> std::convertible_to<bool>;
+    }
 [[nodiscard]] constexpr bool operator==(const Strong<T, TAG> &lhs, const Strong<T, TAG> &rhs)
 {
     return lhs.get() == rhs.get();

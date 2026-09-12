@@ -183,6 +183,10 @@ constexpr Position b{5.0f};
 static_assert((a + b).get() == 15.0f);
 ```
 
+`T` does not have to be arithmetic. Each operator is constrained on the expression it performs, so a
+`Strong<Vec3, PositionTag>` supports `+`, `-`, scalar `*` and `/`, and `==` if `Vec3` does, and
+`a * b` or `a < b` fails at the call site when `Vec3` has no such operator.
+
 ### Quantity points (affine types)
 
 ```cpp

@@ -234,21 +234,6 @@ struct Vec2
     {
         return {x - o.x, y - o.y};
     }
-    constexpr Vec2 operator*(const Vec2 &o) const
-    {
-        return {x * o.x, y * o.y};
-    }
-    constexpr Vec2 operator/(const Vec2 &o) const
-    {
-        return {o.x != 0.0f ? x / o.x : 0.0f, o.y != 0.0f ? y / o.y : 0.0f};
-    }
-
-    constexpr float ratio() const
-    {
-        if (x == 0.0f)
-            return 0.0f;
-        return y / x;
-    }
 
     constexpr Vec2 operator/(float scalar) const
     {
@@ -266,12 +251,6 @@ struct Vec2
     constexpr bool operator==(const Vec2 &o) const
     {
         return almost_equal(x, o.x) && almost_equal(y, o.y);
-    }
-    constexpr std::partial_ordering operator<=>(const Vec2 &o) const
-    {
-        if (auto cmp = x <=> o.x; cmp != 0)
-            return cmp;
-        return y <=> o.y;
     }
 };
 
@@ -321,6 +300,26 @@ struct strong_types::scalar_division_result<Displacement, float>
 {
     using type = Displacement;
 };
+
+// A vector has no v * v, v / v or ordering; the wrapper must not demand them.
+
+template <>
+struct strong_types::tag_product_result<DisplacementTag, DisplacementTag>
+{
+    using type = DisplacementTag;
+};
+
+template <typename A, typename B>
+concept CanMultiply = requires(A a, B b) { a *b; };
+template <typename A, typename B>
+concept CanDivide = requires(A a, B b) { a / b; };
+
+static_assert(!CanMultiply<Displacement, Displacement>, "Vec2 has no v * v even though the tag rule exists");
+static_assert(!CanDivide<Displacement, Displacement>, "Vec2 has no v / v");
+static_assert(CanMultiply<Displacement, float>, "Vec2 * float exists, so Displacement * float exists");
+static_assert(!CanMultiply<float, Displacement>, "float * Vec2 does not exist, so neither does float * Displacement");
+static_assert(!std::three_way_comparable<Displacement>, "an unordered T gives an unordered Strong");
+static_assert(std::equality_comparable<Displacement>, "Vec2 == Vec2 exists, so Displacement == Displacement exists");
 
 static_assert(
     [] {
