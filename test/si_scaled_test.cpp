@@ -208,4 +208,21 @@ static_assert(!CanMultiply<double, Kilometers<int>>, "0.5 * int km would truncat
 static_assert(!CanDivide<Kilometers<int>, double>, "int km / 0.5 would divide by a truncated zero, refused");
 static_assert((Kilometers<int>{5} * 2).get() == 10, "int km * integral scalar stays available");
 static_assert((Kilometers<double>{5.0} * 2).get() == 10.0, "double km * integral scalar stays available");
+
+// ---- an inexact integral scale cannot meet another unit at base: refused, not a hard error ----
+
+template <typename A, typename B>
+concept CanAdd = requires(A a, B b) { a + b; };
+template <typename A, typename B>
+concept CanCompare = requires(A a, B b) { a == b; };
+
+static_assert(CanAdd<Kilometers<int>, unit_t<int, LengthTag>>, "int km + m meets at base");
+static_assert(!CanAdd<Millimeters<int>, unit_t<int, LengthTag>>, "int mm + m would truncate to base, refused");
+static_assert(!CanAdd<Millimeters<int>, Kilometers<int>>, "int mm + km would truncate to base, refused");
+static_assert(CanAdd<Millimeters<double>, Kilometers<double>>, "double mm + km meets at base");
+static_assert(!CanMultiply<Grams<int>, unit_t<int, LengthTag>>, "int g * m would truncate to base, refused");
+static_assert(!CanMultiply<Grams<int>, Kilometers<int>>, "int g * km would truncate to base, refused");
+static_assert(!CanCompare<Millimeters<int>, Kilometers<int>>, "int mm == km would truncate to base, refused");
+static_assert(!CanCompare<Grams<int>, unit_t<int, MassTag>>, "int g == kg would truncate to base, refused");
+static_assert(CanCompare<Kilometers<int>, unit_t<int, LengthTag>>, "int km == m compares at base");
 // NOLINTEND(readability-magic-numbers,readability-identifier-length)

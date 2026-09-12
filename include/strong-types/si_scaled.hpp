@@ -118,6 +118,9 @@ inline constexpr bool is_scaled_v<ScaledUnit<T, Tag, R>> = true;
 template <typename A, typename B>
 concept SameTagScaled = is_scaled_v<A> && is_scaled_v<B> && std::is_same_v<typename A::tag_type, typename B::tag_type>;
 
+template <typename U>
+concept HasBase = requires(const U &val) { val.to_base(); };
+
 // ---- scale_cast: base unit_t → ScaledUnit (implicitly ratio<1>) ----
 
 template <typename TargetScaled, typename T, typename Tag>
@@ -172,14 +175,16 @@ template <typename T, typename Tag, typename R>
 // ---- cross-scale add/sub (same tag, different ratio -> base) ----
 
 template <typename LHS, typename RHS>
-    requires SameTagScaled<LHS, RHS> && (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>)
+    requires SameTagScaled<LHS, RHS> &&
+             (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>) && HasBase<LHS> && HasBase<RHS>
 [[nodiscard]] constexpr auto operator+(const LHS &lhs, const RHS &rhs)
 {
     return lhs.to_base() + rhs.to_base();
 }
 
 template <typename LHS, typename RHS>
-    requires SameTagScaled<LHS, RHS> && (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>)
+    requires SameTagScaled<LHS, RHS> &&
+             (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>) && HasBase<LHS> && HasBase<RHS>
 [[nodiscard]] constexpr auto operator-(const LHS &lhs, const RHS &rhs)
 {
     return lhs.to_base() - rhs.to_base();
@@ -188,24 +193,28 @@ template <typename LHS, typename RHS>
 // ---- scaled +/- base unit_t (same tag -> base) ----
 
 template <typename T, typename Tag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr unit_t<T, Tag> operator+(const ScaledUnit<T, Tag, R> &lhs, const unit_t<T, Tag> &rhs)
 {
     return lhs.to_base() + rhs;
 }
 
 template <typename T, typename Tag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr unit_t<T, Tag> operator+(const unit_t<T, Tag> &lhs, const ScaledUnit<T, Tag, R> &rhs)
 {
     return lhs + rhs.to_base();
 }
 
 template <typename T, typename Tag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr unit_t<T, Tag> operator-(const ScaledUnit<T, Tag, R> &lhs, const unit_t<T, Tag> &rhs)
 {
     return lhs.to_base() - rhs;
 }
 
 template <typename T, typename Tag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr unit_t<T, Tag> operator-(const unit_t<T, Tag> &lhs, const ScaledUnit<T, Tag, R> &rhs)
 {
     return lhs - rhs.to_base();
@@ -237,6 +246,7 @@ template <typename T, typename Tag, typename R, Scalar S>
 // ---- scaled x scaled multiply (delegates to base Strong ops) ----
 
 template <typename T, typename LTag, typename LR, typename RTag, typename RR>
+    requires ExactScale<T, LR> && ExactScale<T, RR>
 [[nodiscard]] constexpr auto operator*(const ScaledUnit<T, LTag, LR> &lhs, const ScaledUnit<T, RTag, RR> &rhs)
 {
     return lhs.to_base() * rhs.to_base();
@@ -245,6 +255,7 @@ template <typename T, typename LTag, typename LR, typename RTag, typename RR>
 // ---- scaled / scaled divide (delegates to base Strong ops) ----
 
 template <typename T, typename LTag, typename LR, typename RTag, typename RR>
+    requires ExactScale<T, LR> && ExactScale<T, RR>
 [[nodiscard]] constexpr auto operator/(const ScaledUnit<T, LTag, LR> &lhs, const ScaledUnit<T, RTag, RR> &rhs)
 {
     return lhs.to_base() / rhs.to_base();
@@ -253,24 +264,28 @@ template <typename T, typename LTag, typename LR, typename RTag, typename RR>
 // ---- scaled x base unit_t (delegates to base) ----
 
 template <typename T, typename LTag, typename R, typename RTag>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr auto operator*(const ScaledUnit<T, LTag, R> &lhs, const unit_t<T, RTag> &rhs)
 {
     return lhs.to_base() * rhs;
 }
 
 template <typename T, typename LTag, typename RTag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr auto operator*(const unit_t<T, LTag> &lhs, const ScaledUnit<T, RTag, R> &rhs)
 {
     return lhs * rhs.to_base();
 }
 
 template <typename T, typename LTag, typename R, typename RTag>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr auto operator/(const ScaledUnit<T, LTag, R> &lhs, const unit_t<T, RTag> &rhs)
 {
     return lhs.to_base() / rhs;
 }
 
 template <typename T, typename LTag, typename RTag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr auto operator/(const unit_t<T, LTag> &lhs, const ScaledUnit<T, RTag, R> &rhs)
 {
     return lhs / rhs.to_base();
@@ -279,14 +294,16 @@ template <typename T, typename LTag, typename RTag, typename R>
 // ---- cross-scale comparison (same tag, different ratio) ----
 
 template <typename LHS, typename RHS>
-    requires SameTagScaled<LHS, RHS> && (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>)
+    requires SameTagScaled<LHS, RHS> &&
+             (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>) && HasBase<LHS> && HasBase<RHS>
 [[nodiscard]] constexpr bool operator==(const LHS &lhs, const RHS &rhs)
 {
     return lhs.to_base().get() == rhs.to_base().get();
 }
 
 template <typename LHS, typename RHS>
-    requires SameTagScaled<LHS, RHS> && (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>)
+    requires SameTagScaled<LHS, RHS> &&
+             (!std::is_same_v<typename LHS::ratio_type, typename RHS::ratio_type>) && HasBase<LHS> && HasBase<RHS>
 [[nodiscard]] constexpr auto operator<=>(const LHS &lhs, const RHS &rhs)
 {
     return lhs.to_base().get() <=> rhs.to_base().get();
@@ -295,12 +312,14 @@ template <typename LHS, typename RHS>
 // ---- ScaledUnit vs unit_t comparison ----
 
 template <typename T, typename Tag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr bool operator==(const ScaledUnit<T, Tag, R> &lhs, const unit_t<T, Tag> &rhs)
 {
     return lhs.to_base().get() == rhs.get();
 }
 
 template <typename T, typename Tag, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr auto operator<=>(const ScaledUnit<T, Tag, R> &lhs, const unit_t<T, Tag> &rhs)
 {
     return lhs.to_base().get() <=> rhs.get();

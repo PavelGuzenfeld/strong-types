@@ -111,6 +111,7 @@ template <typename T, typename Tag, typename Origin>
 // ---- Point + ScaledUnit → Point (convert scaled to base, then add) ----
 
 template <typename T, typename Tag, typename Origin, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const QuantityPoint<T, Tag, Origin> &point,
                                                                 const ScaledUnit<T, Tag, R> &disp)
 {
@@ -120,6 +121,7 @@ template <typename T, typename Tag, typename Origin, typename R>
 // ---- ScaledUnit + Point → Point (commutative) ----
 
 template <typename T, typename Tag, typename Origin, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const ScaledUnit<T, Tag, R> &disp,
                                                                 const QuantityPoint<T, Tag, Origin> &point)
 {
@@ -129,6 +131,7 @@ template <typename T, typename Tag, typename Origin, typename R>
 // ---- Point - ScaledUnit → Point ----
 
 template <typename T, typename Tag, typename Origin, typename R>
+    requires ExactScale<T, R>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator-(const QuantityPoint<T, Tag, Origin> &point,
                                                                 const ScaledUnit<T, Tag, R> &disp)
 {
