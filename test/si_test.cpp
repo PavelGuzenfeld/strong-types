@@ -238,4 +238,23 @@ static_assert(std::is_same_v<decltype(Power{} / AngularVelocity{}), Torque>, "W 
 static_assert(!CanAdd<Energy, Torque>, "J + Nm must not compile: same dimension, different kind");
 static_assert(!CanAdd<Length, Time>, "m + s must not compile");
 static_assert(!CanAdd<Length, Area>, "m + m2 must not compile");
+
+// ---- signed and unsigned reps never meet; everything else promotes as usual ----
+
+template <typename A, typename B>
+concept CanMultiply = requires(A a, B b) { a *b; };
+
+static_assert(!CanAdd<unit_t<int, LengthTag>, unit_t<unsigned, LengthTag>>, "int m + unsigned m would wrap, refused");
+static_assert(!CanAdd<unit_t<unsigned, LengthTag>, unit_t<int, LengthTag>>, "unsigned m + int m would wrap, refused");
+static_assert(!CanMultiply<unit_t<std::int32_t, LengthTag>, unit_t<std::uint64_t, TimeTag>>,
+              "int32 m * uint64 s would wrap, refused");
+static_assert(CanAdd<unit_t<int, LengthTag>, unit_t<long long, LengthTag>>, "two signed reps promote");
+static_assert(
+    std::is_same_v<decltype(unit_t<int, LengthTag>{} + unit_t<long long, LengthTag>{}), unit_t<long long, LengthTag>>,
+    "int + long long is long long");
+static_assert(CanAdd<unit_t<unsigned, LengthTag>, unit_t<std::uint64_t, LengthTag>>, "two unsigned reps promote");
+static_assert(CanAdd<unit_t<unsigned, LengthTag>, unit_t<double, LengthTag>>, "unsigned + floating is floating");
+static_assert(
+    std::is_same_v<decltype(unit_t<unsigned, LengthTag>{} + unit_t<double, LengthTag>{}), unit_t<double, LengthTag>>,
+    "unsigned + double is double");
 // NOLINTEND(readability-magic-numbers,readability-identifier-length,readability-uppercase-literal-suffix)

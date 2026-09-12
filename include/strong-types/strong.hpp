@@ -120,8 +120,14 @@ struct tagged_result<T, Rule>
     using type = tagged_t<T, typename Rule::type>;
 };
 
+// Signed and unsigned integers never meet: the usual conversions would turn -2 + 1u into 4294967295
+template <typename L, typename R>
+concept MixedSignedness =
+    std::is_integral_v<L> && std::is_integral_v<R> && (std::is_signed_v<L> != std::is_signed_v<R>);
+
 // Mixed representations follow the usual arithmetic conversions, independent of operand order
 template <typename LHS, typename RHS>
+    requires(!MixedSignedness<typename LHS::value_type, typename RHS::value_type>)
 using common_rep_t = std::common_type_t<typename LHS::value_type, typename RHS::value_type>;
 
 // Generic fallback: only works for Strong types
@@ -306,11 +312,12 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { scalar / val; }
+    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { scalar / val; } &&
+             requires { typename quotient_result<Strong<S, void>, Strong<T, TAG>>::type; }
 [[nodiscard]] constexpr auto operator/(S scalar, const Strong<T, TAG> &rhs)
 {
     using result_t = typename quotient_result<Strong<S, void>, Strong<T, TAG>>::type;
-    using R = std::common_type_t<S, T>;
+    using R = common_rep_t<Strong<S, void>, Strong<T, TAG>>;
     return result_t{static_cast<R>(scalar) / static_cast<R>(rhs.get())};
 }
 

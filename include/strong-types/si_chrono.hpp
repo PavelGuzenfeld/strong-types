@@ -3,14 +3,20 @@
 #include "si_scaled.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <ctime>
+#include <exception>
+#include <ratio>
+#include <type_traits>
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #if __has_include(<sys/time.h>)
 #include <sys/time.h>
 #define STRONG_TYPES_HAS_TIMEVAL 1
 #else
 #define STRONG_TYPES_HAS_TIMEVAL 0
 #endif
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 namespace strong_types
 {
@@ -21,6 +27,10 @@ template <typename U>
 concept TimeUnit = (is_strong_v<U> && std::is_same_v<typename U::tag_type, TimeTag>) ||
                    (is_scaled_v<U> && std::is_same_v<typename U::tag_type, TimeTag>);
 
+// An integral rep crosses to chrono unchanged; everything else travels as double.
+template <typename T>
+using chrono_rep_t = std::conditional_t<std::is_integral_v<T>, T, double>;
+
 // ---- from_chrono: chrono::duration → unit_t<double, TimeTag> (seconds) ----
 
 template <typename Rep, typename Period>
@@ -30,86 +40,73 @@ template <typename Rep, typename Period>
     return unit_t<double, TimeTag>{std::chrono::duration_cast<Seconds>(dur).count()};
 }
 
-// ---- from_chrono_as: chrono::duration → ScaledUnit<double, TimeTag, TargetRatio> ----
+// ---- from_chrono_as: chrono::duration → ScaledUnit<rep, TimeTag, TargetRatio>; integral reps convert exactly ----
 
 template <typename TargetRatio, typename Rep, typename Period>
-[[nodiscard]] constexpr ScaledUnit<double, TimeTag, TargetRatio>
-from_chrono_as(std::chrono::duration<Rep, Period> dur) noexcept
+    requires ExactScale<chrono_rep_t<Rep>, std::ratio_divide<Period, TargetRatio>>
+[[nodiscard]] constexpr ScaledUnit<chrono_rep_t<Rep>, TimeTag, TargetRatio> from_chrono_as(
+    std::chrono::duration<Rep, Period> dur) noexcept
 {
-    using Target = std::chrono::duration<double, TargetRatio>;
-    return ScaledUnit<double, TimeTag, TargetRatio>{std::chrono::duration_cast<Target>(dur).count()};
+    using R = chrono_rep_t<Rep>;
+    return ScaledUnit<R, TimeTag, TargetRatio>{
+        rescale<std::ratio_divide<Period, TargetRatio>>(static_cast<R>(dur.count()))};
 }
 
-// ---- to_chrono: unit_t<T, TimeTag> → chrono::duration<double> (seconds) ----
+// ---- to_chrono: unit_t<T, TimeTag> → chrono::duration<rep> (seconds) ----
 
 template <typename T>
-[[nodiscard]] constexpr std::chrono::duration<double> to_chrono(unit_t<T, TimeTag> val) noexcept
+[[nodiscard]] constexpr std::chrono::duration<chrono_rep_t<T>> to_chrono(unit_t<T, TimeTag> val) noexcept
 {
-    return std::chrono::duration<double>{static_cast<double>(val.get())};
+    return std::chrono::duration<chrono_rep_t<T>>{static_cast<chrono_rep_t<T>>(val.get())};
 }
 
-// ---- to_chrono: ScaledUnit<T, TimeTag, R> → chrono::duration<double, R> ----
+// ---- to_chrono: ScaledUnit<T, TimeTag, R> → chrono::duration<rep, R> ----
 
 template <typename T, typename R>
-[[nodiscard]] constexpr std::chrono::duration<double, R> to_chrono(ScaledUnit<T, TimeTag, R> val) noexcept
+[[nodiscard]] constexpr std::chrono::duration<chrono_rep_t<T>, R> to_chrono(ScaledUnit<T, TimeTag, R> val) noexcept
 {
-    return std::chrono::duration<double, R>{static_cast<double>(val.get())};
+    return std::chrono::duration<chrono_rep_t<T>, R>{static_cast<chrono_rep_t<T>>(val.get())};
 }
 
-// ---- to_chrono_as: unit_t<T, TimeTag> → specific chrono duration type ----
+// ---- to_chrono_as: any time unit → specific chrono duration type, with chrono's own duration_cast rules ----
 
-template <typename Dur, typename T>
-[[nodiscard]] constexpr Dur to_chrono_as(unit_t<T, TimeTag> val) noexcept
+template <typename Dur, TimeUnit U>
+[[nodiscard]] constexpr Dur to_chrono_as(U val) noexcept
 {
-    return std::chrono::duration_cast<Dur>(std::chrono::duration<double>{static_cast<double>(val.get())});
-}
-
-// ---- to_chrono_as: ScaledUnit<T, TimeTag, R> → specific chrono duration type ----
-
-template <typename Dur, typename T, typename R>
-[[nodiscard]] constexpr Dur to_chrono_as(ScaledUnit<T, TimeTag, R> val) noexcept
-{
-    return std::chrono::duration_cast<Dur>(std::chrono::duration<double, R>{static_cast<double>(val.get())});
+    return std::chrono::duration_cast<Dur>(to_chrono(val));
 }
 
 // ---- from_timespec: struct timespec → unit_t<double, TimeTag> (seconds) ----
 
-[[nodiscard]] constexpr unit_t<double, TimeTag> from_timespec(const struct timespec &ts) noexcept
+[[nodiscard]] constexpr unit_t<double, TimeTag> from_timespec(const struct timespec &spec) noexcept
 {
-    return unit_t<double, TimeTag>{static_cast<double>(ts.tv_sec) +
-                                   static_cast<double>(ts.tv_nsec) / 1'000'000'000.0};
+    return unit_t<double, TimeTag>{static_cast<double>(spec.tv_sec) +
+                                   static_cast<double>(spec.tv_nsec) / static_cast<double>(std::nano::den)};
 }
 
-// ---- from_timespec_as_ns: struct timespec → Nanoseconds<double> ----
+// ---- from_timespec_as_ns: struct timespec → Nanoseconds<int64>, exact; terminates past the int64 range ----
 
-[[nodiscard]] constexpr Nanoseconds<double> from_timespec_as_ns(const struct timespec &ts) noexcept
+[[nodiscard]] constexpr Nanoseconds<std::int64_t> from_timespec_as_ns(const struct timespec &spec) noexcept
 {
-    return Nanoseconds<double>{static_cast<double>(ts.tv_sec) * 1'000'000'000.0 + static_cast<double>(ts.tv_nsec)};
-}
-
-// ---- to_timespec: unit_t<T, TimeTag> → struct timespec ----
-
-template <typename T>
-[[nodiscard]] constexpr struct timespec to_timespec(unit_t<T, TimeTag> val) noexcept
-{
-    auto secs = static_cast<double>(val.get());
-    auto whole = static_cast<std::time_t>(secs);
-    auto frac = secs - static_cast<double>(whole);
-    // Handle negative fractions: timespec requires tv_nsec in [0, 999999999]
-    if (frac < 0.0)
+    const auto total =
+        safe_multiply(static_cast<std::int64_t>(spec.tv_sec), static_cast<std::int64_t>(std::nano::den))
+            .and_then([&spec](std::int64_t whole) { return safe_add(whole, static_cast<std::int64_t>(spec.tv_nsec)); });
+    if (!total)
     {
-        --whole;
-        frac += 1.0;
+        std::terminate();
     }
-    return {whole, static_cast<long>(frac * 1'000'000'000.0 + 0.5)};
+    return Nanoseconds<std::int64_t>{*total};
 }
 
-// ---- to_timespec: ScaledUnit<T, TimeTag, R> → struct timespec ----
+// ---- to_timespec: any time unit → struct timespec, rounded to the nearest nanosecond ----
 
-template <typename T, typename R>
-[[nodiscard]] constexpr struct timespec to_timespec(ScaledUnit<T, TimeTag, R> val) noexcept
+// floor keeps tv_nsec in [0, 1e9) for negative times; the round-then-floor order carries 0.9999999999 s into tv_sec.
+template <TimeUnit U>
+[[nodiscard]] constexpr struct timespec to_timespec(U val) noexcept
 {
-    return to_timespec(val.to_base());
+    const auto total = std::chrono::round<std::chrono::nanoseconds>(to_chrono(val));
+    const auto whole = std::chrono::floor<std::chrono::seconds>(total);
+    return {static_cast<std::time_t>(whole.count()), static_cast<long>((total - whole).count())};
 }
 
 // ---- timeval functions (POSIX only) ----
@@ -118,41 +115,34 @@ template <typename T, typename R>
 
 // ---- from_timeval: struct timeval → unit_t<double, TimeTag> (seconds) ----
 
-[[nodiscard]] constexpr unit_t<double, TimeTag> from_timeval(const struct timeval &tv) noexcept
+[[nodiscard]] constexpr unit_t<double, TimeTag> from_timeval(const struct timeval &tval) noexcept
 {
-    return unit_t<double, TimeTag>{static_cast<double>(tv.tv_sec) +
-                                   static_cast<double>(tv.tv_usec) / 1'000'000.0};
+    return unit_t<double, TimeTag>{static_cast<double>(tval.tv_sec) +
+                                   static_cast<double>(tval.tv_usec) / static_cast<double>(std::micro::den)};
 }
 
-// ---- from_timeval_as_us: struct timeval → Microseconds<double> ----
+// ---- from_timeval_as_us: struct timeval → Microseconds<int64>, exact; terminates past the int64 range ----
 
-[[nodiscard]] constexpr Microseconds<double> from_timeval_as_us(const struct timeval &tv) noexcept
+[[nodiscard]] constexpr Microseconds<std::int64_t> from_timeval_as_us(const struct timeval &tval) noexcept
 {
-    return Microseconds<double>{static_cast<double>(tv.tv_sec) * 1'000'000.0 + static_cast<double>(tv.tv_usec)};
-}
-
-// ---- to_timeval: unit_t<T, TimeTag> → struct timeval ----
-
-template <typename T>
-[[nodiscard]] constexpr struct timeval to_timeval(unit_t<T, TimeTag> val) noexcept
-{
-    auto secs = static_cast<double>(val.get());
-    auto whole = static_cast<std::time_t>(secs);
-    auto frac = secs - static_cast<double>(whole);
-    if (frac < 0.0)
+    const auto total =
+        safe_multiply(static_cast<std::int64_t>(tval.tv_sec), static_cast<std::int64_t>(std::micro::den))
+            .and_then([&tval](std::int64_t whole) { return safe_add(whole, static_cast<std::int64_t>(tval.tv_usec)); });
+    if (!total)
     {
-        --whole;
-        frac += 1.0;
+        std::terminate();
     }
-    return {whole, static_cast<suseconds_t>(frac * 1'000'000.0 + 0.5)};
+    return Microseconds<std::int64_t>{*total};
 }
 
-// ---- to_timeval: ScaledUnit<T, TimeTag, R> → struct timeval ----
+// ---- to_timeval: any time unit → struct timeval, rounded to the nearest microsecond ----
 
-template <typename T, typename R>
-[[nodiscard]] constexpr struct timeval to_timeval(ScaledUnit<T, TimeTag, R> val) noexcept
+template <TimeUnit U>
+[[nodiscard]] constexpr struct timeval to_timeval(U val) noexcept
 {
-    return to_timeval(val.to_base());
+    const auto total = std::chrono::round<std::chrono::microseconds>(to_chrono(val));
+    const auto whole = std::chrono::floor<std::chrono::seconds>(total);
+    return {static_cast<std::time_t>(whole.count()), static_cast<suseconds_t>((total - whole).count())};
 }
 
 #endif // STRONG_TYPES_HAS_TIMEVAL

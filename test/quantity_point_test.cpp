@@ -180,6 +180,15 @@ static_assert((20.0_degC + 5.0_K).get() == 25.0, "20 degC + 5 K = 25 degC");
 static_assert((20.0_degC - 5.0_K).get() == 15.0, "20 degC - 5 K = 15 degC");
 static_assert((5.0_K + 3.0_K).get() == 8.0, "kelvin intervals add");
 
+// ---- an inexact integral displacement cannot reach the point's base scale: refused, not a hard error ----
+
+using MilliKelvin = ScaledUnit<int, TemperatureTag, std::milli>;
+using KiloKelvin = ScaledUnit<int, TemperatureTag, std::kilo>;
+static_assert(!CanAdd<Celsius<int>, MilliKelvin>, "int degC + int mK would truncate, refused");
+static_assert(!CanAdd<MilliKelvin, Celsius<int>>, "int mK + int degC would truncate, refused");
+static_assert(!CanSubtract<Celsius<int>, MilliKelvin>, "int degC - int mK would truncate, refused");
+static_assert((Celsius<int>{20} + KiloKelvin{1}).get() == 1020, "int degC + int kK is exact");
+
 // ---- Detector trait ----
 
 static_assert(is_quantity_point_v<AltitudeMSL>, "detector: AltitudeMSL is a QuantityPoint");

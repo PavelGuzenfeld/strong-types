@@ -7,6 +7,19 @@
 #include <limits>
 #include <type_traits>
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+#ifndef STRONG_TYPES_HAS_MUL_OVERFLOW
+#if defined(__has_builtin)
+#if __has_builtin(__builtin_mul_overflow)
+#define STRONG_TYPES_HAS_MUL_OVERFLOW 1
+#endif
+#endif
+#endif
+#ifndef STRONG_TYPES_HAS_MUL_OVERFLOW
+#define STRONG_TYPES_HAS_MUL_OVERFLOW 0
+#endif
+// NOLINTEND(cppcoreguidelines-macro-usage)
+
 namespace strong_types
 {
 
@@ -46,6 +59,15 @@ template <std::integral T>
         return T{0};
     }
 
+#if STRONG_TYPES_HAS_MUL_OVERFLOW
+    T product{};
+    if (__builtin_mul_overflow(lhs, rhs, &product))
+    {
+        const bool result_negative = (lhs > 0) != (rhs > 0);
+        return std::unexpected{result_negative ? ArithmeticErrc::underflow : ArithmeticErrc::overflow};
+    }
+    return product;
+#else
     using U = std::make_unsigned_t<T>;
     constexpr auto max_val = std::numeric_limits<T>::max();
     constexpr auto min_val = std::numeric_limits<T>::min();
@@ -91,6 +113,7 @@ template <std::integral T>
         }
         return static_cast<T>(lhs * rhs);
     }
+#endif
 }
 
 // ---- safe_add ----
