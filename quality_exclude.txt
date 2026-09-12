@@ -1,0 +1,3 @@
+# Opt-in {fmt} support; the analysis image ships neither <fmt/format.h> nor doctest
+include/strong-types/fmt.hpp
+test/fmt_test.cpp

@@ -30,7 +30,7 @@ static_assert(safe_multiply(INT_MIN, 2).error() == ArithmeticErrc::underflow, "I
 
 // ---- safe_multiply: unsigned overflow ----
 
-static_assert(safe_multiply(UINT_MAX, 2u).error() == ArithmeticErrc::overflow, "UINT_MAX * 2 overflows");
+static_assert(safe_multiply(UINT_MAX, 2U).error() == ArithmeticErrc::overflow, "UINT_MAX * 2 overflows");
 
 // ---- safe_add: normal cases ----
 
@@ -49,7 +49,7 @@ static_assert(safe_add(INT_MIN, -1).error() == ArithmeticErrc::underflow, "INT_M
 
 // ---- safe_add: unsigned overflow ----
 
-static_assert(safe_add(UINT_MAX, 1u).error() == ArithmeticErrc::overflow, "UINT_MAX + 1 overflows");
+static_assert(safe_add(UINT_MAX, 1U).error() == ArithmeticErrc::overflow, "UINT_MAX + 1 overflows");
 
 // ---- safe_subtract: normal cases ----
 
@@ -66,7 +66,7 @@ static_assert(safe_subtract(INT_MIN, 1).error() == ArithmeticErrc::underflow, "I
 
 // ---- safe_subtract: unsigned underflow ----
 
-static_assert(safe_subtract(0u, 1u).error() == ArithmeticErrc::underflow, "0u - 1u underflows");
+static_assert(safe_subtract(0U, 1U).error() == ArithmeticErrc::underflow, "0U - 1U underflows");
 
 // ---- safe_divide: normal cases ----
 

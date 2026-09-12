@@ -84,55 +84,55 @@ template <typename T, typename Tag, typename Origin>
 // ---- Point + displacement → Point ----
 
 template <typename T, typename Tag, typename Origin>
-[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const QuantityPoint<T, Tag, Origin> &pt,
+[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const QuantityPoint<T, Tag, Origin> &point,
                                                                 const unit_t<T, Tag> &disp)
 {
-    return QuantityPoint<T, Tag, Origin>{pt.get() + disp.get()};
+    return QuantityPoint<T, Tag, Origin>{point.get() + disp.get()};
 }
 
 // ---- displacement + Point → Point (commutative) ----
 
 template <typename T, typename Tag, typename Origin>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const unit_t<T, Tag> &disp,
-                                                                const QuantityPoint<T, Tag, Origin> &pt)
+                                                                const QuantityPoint<T, Tag, Origin> &point)
 {
-    return QuantityPoint<T, Tag, Origin>{disp.get() + pt.get()};
+    return QuantityPoint<T, Tag, Origin>{disp.get() + point.get()};
 }
 
 // ---- Point - displacement → Point ----
 
 template <typename T, typename Tag, typename Origin>
-[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator-(const QuantityPoint<T, Tag, Origin> &pt,
+[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator-(const QuantityPoint<T, Tag, Origin> &point,
                                                                 const unit_t<T, Tag> &disp)
 {
-    return QuantityPoint<T, Tag, Origin>{pt.get() - disp.get()};
+    return QuantityPoint<T, Tag, Origin>{point.get() - disp.get()};
 }
 
 // ---- Point + ScaledUnit → Point (convert scaled to base, then add) ----
 
 template <typename T, typename Tag, typename Origin, typename R>
-[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const QuantityPoint<T, Tag, Origin> &pt,
+[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const QuantityPoint<T, Tag, Origin> &point,
                                                                 const ScaledUnit<T, Tag, R> &disp)
 {
-    return pt + disp.to_base();
+    return point + disp.to_base();
 }
 
 // ---- ScaledUnit + Point → Point (commutative) ----
 
 template <typename T, typename Tag, typename Origin, typename R>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const ScaledUnit<T, Tag, R> &disp,
-                                                                const QuantityPoint<T, Tag, Origin> &pt)
+                                                                const QuantityPoint<T, Tag, Origin> &point)
 {
-    return disp.to_base() + pt;
+    return disp.to_base() + point;
 }
 
 // ---- Point - ScaledUnit → Point ----
 
 template <typename T, typename Tag, typename Origin, typename R>
-[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator-(const QuantityPoint<T, Tag, Origin> &pt,
+[[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator-(const QuantityPoint<T, Tag, Origin> &point,
                                                                 const ScaledUnit<T, Tag, R> &disp)
 {
-    return pt - disp.to_base();
+    return point - disp.to_base();
 }
 
 // NOTE: QuantityPoint + QuantityPoint is intentionally NOT defined.

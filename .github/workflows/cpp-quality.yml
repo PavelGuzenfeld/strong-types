@@ -21,6 +21,7 @@ jobs:
       enable_file_naming: true
       file_naming_exceptions: naming_exceptions.txt
       cppcheck_suppress: cppcheck.suppress
+      exclude_file: quality_exclude.txt
       cppcheck_std: c++23
       enforce_doctest: true
       ban_cout: true

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <concepts>
+#include <cstdint>
 #include <expected>
 #include <limits>
 #include <type_traits>
@@ -9,7 +10,7 @@
 namespace strong_types
 {
 
-enum class ArithmeticErrc
+enum class ArithmeticErrc : std::uint8_t
 {
     overflow,
     underflow,
@@ -27,7 +28,7 @@ template <std::integral T>
     if constexpr (std::is_signed_v<T>)
     {
         // Two's complement: -val == ~val + 1, computed in unsigned to avoid UB
-        return val >= 0 ? static_cast<U>(val) : static_cast<U>(~val) + U{1};
+        return val >= 0 ? static_cast<U>(val) : static_cast<U>(~val) + U{1}; // NOLINT(readability-magic-numbers)
     }
     else
     {
@@ -38,9 +39,9 @@ template <std::integral T>
 // ---- safe_multiply ----
 
 template <std::integral T>
-[[nodiscard]] constexpr auto safe_multiply(T a, T b) -> std::expected<T, ArithmeticErrc>
+[[nodiscard]] constexpr auto safe_multiply(T lhs, T rhs) -> std::expected<T, ArithmeticErrc>
 {
-    if (a == 0 || b == 0)
+    if (lhs == 0 || rhs == 0)
     {
         return T{0};
     }
@@ -51,9 +52,9 @@ template <std::integral T>
 
     if constexpr (std::is_signed_v<T>)
     {
-        auto abs_a = unsigned_abs(a);
-        auto abs_b = unsigned_abs(b);
-        bool result_negative = (a > 0) != (b > 0);
+        auto abs_a = unsigned_abs(lhs);
+        auto abs_b = unsigned_abs(rhs);
+        bool result_negative = (lhs > 0) != (rhs > 0);
 
         if (result_negative)
         {
@@ -77,93 +78,93 @@ template <std::integral T>
         auto unsigned_result = abs_a * abs_b;
         if (result_negative)
         {
-            return static_cast<T>(-static_cast<T>(unsigned_result - U{1}) - T{1});
+            return static_cast<T>(-static_cast<T>(unsigned_result - U{1}) - T{1}); // NOLINT(readability-magic-numbers)
         }
         return static_cast<T>(unsigned_result);
     }
     else
     {
         // Unsigned: only overflow possible
-        if (a > max_val / b)
+        if (lhs > max_val / rhs)
         {
             return std::unexpected{ArithmeticErrc::overflow};
         }
-        return static_cast<T>(a * b);
+        return static_cast<T>(lhs * rhs);
     }
 }
 
 // ---- safe_add ----
 
 template <std::integral T>
-[[nodiscard]] constexpr auto safe_add(T a, T b) -> std::expected<T, ArithmeticErrc>
+[[nodiscard]] constexpr auto safe_add(T lhs, T rhs) -> std::expected<T, ArithmeticErrc>
 {
     constexpr auto max_val = std::numeric_limits<T>::max();
     constexpr auto min_val = std::numeric_limits<T>::min();
 
     if constexpr (std::is_signed_v<T>)
     {
-        if (b > 0 && a > max_val - b)
+        if (rhs > 0 && lhs > max_val - rhs)
         {
             return std::unexpected{ArithmeticErrc::overflow};
         }
-        if (b < 0 && a < min_val - b)
+        if (rhs < 0 && lhs < min_val - rhs)
         {
             return std::unexpected{ArithmeticErrc::underflow};
         }
     }
     else
     {
-        if (a > max_val - b)
+        if (lhs > max_val - rhs)
         {
             return std::unexpected{ArithmeticErrc::overflow};
         }
     }
 
-    return static_cast<T>(a + b);
+    return static_cast<T>(lhs + rhs);
 }
 
 // ---- safe_subtract ----
 
 template <std::integral T>
-[[nodiscard]] constexpr auto safe_subtract(T a, T b) -> std::expected<T, ArithmeticErrc>
+[[nodiscard]] constexpr auto safe_subtract(T lhs, T rhs) -> std::expected<T, ArithmeticErrc>
 {
     constexpr auto max_val = std::numeric_limits<T>::max();
     constexpr auto min_val = std::numeric_limits<T>::min();
 
     if constexpr (std::is_signed_v<T>)
     {
-        if (b < 0 && a > max_val + b)
+        if (rhs < 0 && lhs > max_val + rhs)
         {
             return std::unexpected{ArithmeticErrc::overflow};
         }
-        if (b > 0 && a < min_val + b)
+        if (rhs > 0 && lhs < min_val + rhs)
         {
             return std::unexpected{ArithmeticErrc::underflow};
         }
     }
     else
     {
-        if (a < b)
+        if (lhs < rhs)
         {
             return std::unexpected{ArithmeticErrc::underflow};
         }
     }
 
-    return static_cast<T>(a - b);
+    return static_cast<T>(lhs - rhs);
 }
 
 // ---- safe_divide ----
 
 template <typename T>
-[[nodiscard]] constexpr auto safe_divide(T a, T b) -> std::expected<T, ArithmeticErrc>
+[[nodiscard]] constexpr auto safe_divide(T lhs, T rhs) -> std::expected<T, ArithmeticErrc>
 {
     if constexpr (std::is_floating_point_v<T>)
     {
-        if (b == T{0})
+        if (rhs == T{0})
         {
             return std::unexpected{ArithmeticErrc::divide_by_zero};
         }
-        T result = a / b;
+        T result = lhs / rhs;
         if (std::isinf(result) || std::isnan(result))
         {
             return std::unexpected{ArithmeticErrc::overflow};
@@ -173,18 +174,18 @@ template <typename T>
     else
     {
         static_assert(std::integral<T>);
-        if (b == T{0})
+        if (rhs == T{0})
         {
             return std::unexpected{ArithmeticErrc::divide_by_zero};
         }
         if constexpr (std::is_signed_v<T>)
         {
-            if (a == std::numeric_limits<T>::min() && b == T{-1})
+            if (lhs == std::numeric_limits<T>::min() && rhs == T{-1}) // NOLINT(readability-magic-numbers)
             {
                 return std::unexpected{ArithmeticErrc::overflow};
             }
         }
-        return static_cast<T>(a / b);
+        return static_cast<T>(lhs / rhs);
     }
 }
 

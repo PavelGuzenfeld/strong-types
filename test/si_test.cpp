@@ -1,3 +1,4 @@
+// NOLINTBEGIN(readability-magic-numbers,readability-identifier-length,readability-uppercase-literal-suffix) — test file
 #include "strong-types/si.hpp"
 #include <cstdint> // for fixed width integer types
 #include <type_traits>
@@ -237,3 +238,4 @@ static_assert(std::is_same_v<decltype(Power{} / AngularVelocity{}), Torque>, "W 
 static_assert(!CanAdd<Energy, Torque>, "J + Nm must not compile: same dimension, different kind");
 static_assert(!CanAdd<Length, Time>, "m + s must not compile");
 static_assert(!CanAdd<Length, Area>, "m + m2 must not compile");
+// NOLINTEND(readability-magic-numbers,readability-identifier-length,readability-uppercase-literal-suffix)

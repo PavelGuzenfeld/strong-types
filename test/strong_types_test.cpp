@@ -1,4 +1,4 @@
-// NOLINTBEGIN(readability-magic-numbers,readability-identifier-length) — test file
+// NOLINTBEGIN(readability-magic-numbers,readability-identifier-length,readability-uppercase-literal-suffix) — test file
 
 #include "strong-types/strong.hpp"
 
@@ -150,8 +150,8 @@ static_assert(
 
 static_assert(
     [] {
-        Dummy d1{2.0f};
-        Dummy d2{2.0f};
+        const Dummy d1{2.0f};
+        const Dummy d2{2.0f};
         auto r1 = d1 + d2;
         auto r2 = d1 - d2;
         r1 *= 2;
@@ -211,8 +211,8 @@ static_assert(
 
 static_assert(
     [] {
-        Dummy d1{1.0f};
-        Dummy d2{2.0f};
+        const Dummy d1{1.0f};
+        const Dummy d2{2.0f};
         return (d1 < d2) && (d1 != d2) && !(d1 > d2);
     }(),
     "ordering and comparison check");
@@ -356,7 +356,7 @@ constexpr Displacement d{Vec2{1e30f, 1e-30f}};
 constexpr auto result = d / 1e10f;
 static_assert(vec2_equal(result.get(), Vec2{1e20f, 1e-40f}), "oopsie underflow?");
 
-// NOLINTEND(readability-magic-numbers,readability-identifier-length)
+// NOLINTEND(readability-magic-numbers,readability-identifier-length,readability-uppercase-literal-suffix)
 
 int main()
 {

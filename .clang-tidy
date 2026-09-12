@@ -19,6 +19,9 @@ Checks: >-
   -readability-redundant-access-specifiers
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
+# compile_commands.json comes from g++: ignore its GCC-only -W flags; libc++ because clang 18 has no
+# std::expected with libstdc++
+ExtraArgsBefore: ['-stdlib=libc++', '-Wno-unknown-warning-option']
 CheckOptions:
   readability-magic-numbers.IgnoredFloatingPointValues: 'ALL'
   readability-magic-numbers.IgnoredIntegerValues: 'ALL'
