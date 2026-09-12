@@ -30,7 +30,7 @@ static_assert(safe_multiply(INT_MIN, 2).error() == ArithmeticErrc::underflow, "I
 
 // ---- safe_multiply: unsigned overflow ----
 
-static_assert(safe_multiply(UINT_MAX, 2u).error() == ArithmeticErrc::overflow, "UINT_MAX * 2 overflows");
+static_assert(safe_multiply(UINT_MAX, 2U).error() == ArithmeticErrc::overflow, "UINT_MAX * 2 overflows");
 
 // ---- safe_add: normal cases ----
 
@@ -49,7 +49,7 @@ static_assert(safe_add(INT_MIN, -1).error() == ArithmeticErrc::underflow, "INT_M
 
 // ---- safe_add: unsigned overflow ----
 
-static_assert(safe_add(UINT_MAX, 1u).error() == ArithmeticErrc::overflow, "UINT_MAX + 1 overflows");
+static_assert(safe_add(UINT_MAX, 1U).error() == ArithmeticErrc::overflow, "UINT_MAX + 1 overflows");
 
 // ---- safe_subtract: normal cases ----
 
@@ -58,8 +58,7 @@ static_assert(safe_subtract(-5, -3).value() == -2, "-5 - (-3) = -2");
 
 // ---- safe_subtract: overflow ----
 
-static_assert(safe_subtract(INT_MAX, -1).error() == ArithmeticErrc::overflow,
-              "INT_MAX - (-1) overflows");
+static_assert(safe_subtract(INT_MAX, -1).error() == ArithmeticErrc::overflow, "INT_MAX - (-1) overflows");
 
 // ---- safe_subtract: underflow ----
 
@@ -67,7 +66,7 @@ static_assert(safe_subtract(INT_MIN, 1).error() == ArithmeticErrc::underflow, "I
 
 // ---- safe_subtract: unsigned underflow ----
 
-static_assert(safe_subtract(0u, 1u).error() == ArithmeticErrc::underflow, "0u - 1u underflows");
+static_assert(safe_subtract(0U, 1U).error() == ArithmeticErrc::underflow, "0U - 1U underflows");
 
 // ---- safe_divide: normal cases ----
 
@@ -113,6 +112,12 @@ static_assert(
         return !result.has_value() && result.error() == ArithmeticErrc::overflow;
     }(),
     "safe_to_base: 3000000 km overflows int");
+
+// ---- safe_to_base: truncation ----
+
+static_assert(safe_to_base(Grams<int>{500}).error() == ArithmeticErrc::truncation,
+              "safe_to_base: 500 g is not a whole kg");
+static_assert(safe_to_base(Grams<int>{3000}).value().get() == 3, "safe_to_base: 3000 g = 3 kg");
 
 // ---- safe_scale_cast from base: normal ----
 

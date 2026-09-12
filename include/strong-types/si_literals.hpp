@@ -1,9 +1,19 @@
 #pragma once
 
+#include "quantity_point.hpp"
 #include "si.hpp"
 
 namespace strong_types::si_literals
 {
+
+[[nodiscard]] constexpr Celsius<double> operator""_degC(long double val)
+{
+    return Celsius<double>{static_cast<double>(val)};
+}
+[[nodiscard]] constexpr Celsius<double> operator""_degC(unsigned long long val)
+{
+    return Celsius<double>{static_cast<double>(val)};
+}
 
 // NOLINTBEGIN(cppcoreguidelines-macro-usage) — macro required for UDL token-pasting
 #define STRONG_TYPES_DEFINE_UDL(suffix, Tag)                                                                           \
@@ -25,7 +35,7 @@ STRONG_TYPES_DEFINE_UDL(mps2, AccelerationTag)
 STRONG_TYPES_DEFINE_UDL(N, ForceTag)
 STRONG_TYPES_DEFINE_UDL(J, EnergyTag)
 STRONG_TYPES_DEFINE_UDL(Hz, HertzTag)
-STRONG_TYPES_DEFINE_UDL(degC, CelsiusTag)
+STRONG_TYPES_DEFINE_UDL(K, TemperatureTag)
 STRONG_TYPES_DEFINE_UDL(V, VoltTag)
 STRONG_TYPES_DEFINE_UDL(rad, RadianTag)
 STRONG_TYPES_DEFINE_UDL(sr, SteradianTag)

@@ -1,6 +1,7 @@
 // NOLINTBEGIN(readability-magic-numbers,readability-identifier-length) -- fuzz harness
 
 #include "strong-types/safe_math.hpp"
+#include "strong-types/si_scaled.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -14,11 +15,13 @@ using strong_types::safe_multiply;
 using strong_types::safe_subtract;
 
 // Widen to int64 to compute the "true" result for oracle checks
-static void check_multiply(int32_t a, int32_t b)
+namespace
+{
+void check_multiply(int32_t a, int32_t b)
 {
     auto result = safe_multiply(a, b);
     auto wide = static_cast<int64_t>(a) * static_cast<int64_t>(b);
-    bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
+    const bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
 
     if (result.has_value())
     {
@@ -38,11 +41,11 @@ static void check_multiply(int32_t a, int32_t b)
     }
 }
 
-static void check_add(int32_t a, int32_t b)
+void check_add(int32_t a, int32_t b)
 {
     auto result = safe_add(a, b);
     auto wide = static_cast<int64_t>(a) + static_cast<int64_t>(b);
-    bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
+    const bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
 
     if (result.has_value())
     {
@@ -60,11 +63,11 @@ static void check_add(int32_t a, int32_t b)
     }
 }
 
-static void check_subtract(int32_t a, int32_t b)
+void check_subtract(int32_t a, int32_t b)
 {
     auto result = safe_subtract(a, b);
     auto wide = static_cast<int64_t>(a) - static_cast<int64_t>(b);
-    bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
+    const bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
 
     if (result.has_value())
     {
@@ -82,7 +85,7 @@ static void check_subtract(int32_t a, int32_t b)
     }
 }
 
-static void check_divide(int32_t a, int32_t b)
+void check_divide(int32_t a, int32_t b)
 {
     auto result = safe_divide(a, b);
 
@@ -97,7 +100,7 @@ static void check_divide(int32_t a, int32_t b)
     }
 
     // INT32_MIN / -1 overflows
-    bool overflows = (a == std::numeric_limits<int32_t>::min() && b == -1);
+    const bool overflows = (a == std::numeric_limits<int32_t>::min() && b == -1);
     if (overflows)
     {
         if (result.has_value())
@@ -115,18 +118,18 @@ static void check_divide(int32_t a, int32_t b)
     }
 }
 
-static void check_scaled_round_trip(int32_t val)
+void check_scaled_round_trip(int32_t val)
 {
     // safe_to_base(ScaledUnit<int, LengthTag, kilo>) then safe_scale_cast back
     using Km = strong_types::ScaledUnit<int32_t, strong_types::LengthTag, std::kilo>;
-    Km km{val};
+    const Km km{val};
 
     auto base = strong_types::safe_to_base(km);
     if (!base.has_value())
     {
         // Overflow on to_base is expected for large values — just verify the wide math
         auto wide = static_cast<int64_t>(val) * 1000;
-        bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
+        const bool fits = wide >= std::numeric_limits<int32_t>::min() && wide <= std::numeric_limits<int32_t>::max();
         if (fits)
         {
             __builtin_trap(); // Should have succeeded
@@ -141,6 +144,7 @@ static void check_scaled_round_trip(int32_t val)
         __builtin_trap();
     }
 }
+} // namespace
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -152,7 +156,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     int32_t a{};
     int32_t b{};
     std::memcpy(&a, data, sizeof(a));
-    std::memcpy(&b, data + sizeof(a), sizeof(b));
+    std::memcpy(&b, data + sizeof(a), sizeof(b)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     check_multiply(a, b);
     check_add(a, b);

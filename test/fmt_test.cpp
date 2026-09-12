@@ -23,7 +23,7 @@ TEST_CASE("Strong base units format with suffix")
     CHECK(fmt::format("{}", unit_t<double, ForceTag>{100.0}) == "100 N");
     CHECK(fmt::format("{}", unit_t<double, EnergyTag>{50.0}) == "50 J");
     CHECK(fmt::format("{}", unit_t<double, HertzTag>{60.0}) == "60 Hz");
-    CHECK(fmt::format("{}", unit_t<double, CelsiusTag>{22.5}) == "22.5 degC");
+    CHECK(fmt::format("{}", unit_t<double, TemperatureTag>{5.0}) == "5 K");
     CHECK(fmt::format("{}", unit_t<double, VoltTag>{3.3}) == "3.3 V");
     CHECK(fmt::format("{}", unit_t<double, RadianTag>{1.57}) == "1.57 rad");
     CHECK(fmt::format("{}", unit_t<double, SteradianTag>{6.28}) == "6.28 sr");
@@ -93,10 +93,19 @@ TEST_CASE("ScaledUnit with unknown ratio falls back to tag suffix")
 
 TEST_CASE("QuantityPoint formats with suffix")
 {
-    struct TestOrigin {};
+    struct TestOrigin
+    {
+    };
     using QP = QuantityPoint<double, LengthTag, TestOrigin>;
     CHECK(fmt::format("{}", QP{42.5}) == "42.5 m");
     CHECK(fmt::format("{:.1f}", QP{3.14159}) == "3.1 m");
+}
+
+TEST_CASE("Celsius point formats as degC, its interval as K")
+{
+    CHECK(fmt::format("{}", Celsius<double>{22.5}) == "22.5 degC");
+    CHECK(fmt::format("{}", 22.5_degC) == "22.5 degC");
+    CHECK(fmt::format("{}", 30.0_degC - 20.0_degC) == "10 K");
 }
 
 TEST_CASE("QuantityPoint with void origin formats same as with origin")

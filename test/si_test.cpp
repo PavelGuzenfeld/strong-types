@@ -1,5 +1,7 @@
+// NOLINTBEGIN(readability-magic-numbers,readability-identifier-length,readability-uppercase-literal-suffix) — test file
 #include "strong-types/si.hpp"
 #include <cstdint> // for fixed width integer types
+#include <type_traits>
 
 using namespace strong_types;
 
@@ -12,99 +14,124 @@ using Force = unit_t<float, ForceTag>;
 using Energy = unit_t<float, EnergyTag>;
 using Area = unit_t<float, AreaTag>;
 using Hertz = unit_t<float, HertzTag>;
-using Celsius = unit_t<float, CelsiusTag>;
 using Volt = unit_t<float, VoltTag>;
 using Radian = unit_t<float, RadianTag>;
 using Steradian = unit_t<float, SteradianTag>;
 
-static_assert([]
-              {
-    constexpr Length d{100.0f};
-    constexpr Time t{20.0f};
-    constexpr Speed s = d / t;
-    return s.get() == 5.0f; }(), "Length / Time = Speed failed");
+static_assert(
+    [] {
+        constexpr Length d{100.0f};
+        constexpr Time t{20.0f};
+        constexpr Speed s = d / t;
+        return s.get() == 5.0f;
+    }(),
+    "Length / Time = Speed failed");
 
-static_assert([]
-              {
-    constexpr Speed s{5.0f};
-    constexpr Time t{10.0f};
-    constexpr Length d = s * t;
-    return d.get() == 50.0f; }(), "Speed * Time = Length failed");
+static_assert(
+    [] {
+        constexpr Speed s{5.0f};
+        constexpr Time t{10.0f};
+        constexpr Length d = s * t;
+        return d.get() == 50.0f;
+    }(),
+    "Speed * Time = Length failed");
 
-static_assert([]
-              {
-    constexpr Length d1{50.0f};
-    constexpr Length d2{100.0f};
-    constexpr float ratio = d1 / d2;
-    return ratio == 0.5f; }(), "Length / Length = scalar ratio failed");
+static_assert(
+    [] {
+        constexpr Length d1{50.0f};
+        constexpr Length d2{100.0f};
+        constexpr float ratio = d1 / d2;
+        return ratio == 0.5f;
+    }(),
+    "Length / Length = scalar ratio failed");
 
-static_assert([]
-              {
-    constexpr Length d{0.0f};
-    constexpr auto result = d * 123.456f;
-    return result.get() == 0.0f; }(), "zero multiplication failed");
+static_assert(
+    [] {
+        constexpr Length d{0.0f};
+        constexpr auto result = d * 123.456f;
+        return result.get() == 0.0f;
+    }(),
+    "zero multiplication failed");
 
-static_assert([]
-              {
-    constexpr Length d{1e30f};
-    constexpr auto result = d / 1e5f;
-    constexpr float expected = 1e25f;
-    constexpr float epsilon = 1e20f;
-    return (result.get() > expected - epsilon) && (result.get() < expected + epsilon); }(), "large value division failed");
+static_assert(
+    [] {
+        constexpr Length d{1e30f};
+        constexpr auto result = d / 1e5f;
+        constexpr float expected = 1e25f;
+        constexpr float epsilon = 1e20f;
+        return (result.get() > expected - epsilon) && (result.get() < expected + epsilon);
+    }(),
+    "large value division failed");
 
-static_assert([]
-              {
-    constexpr Length d{3.0f};
-    constexpr auto x = 2 * d;
-    constexpr auto y = d * 2U;
-    constexpr auto z = d * 2.0;
-    return x.get() == 6.0f && y.get() == 6.0f && z.get() == 6.0f; }(), "mixed scalar overloads failed");
+static_assert(
+    [] {
+        constexpr Length d{3.0f};
+        constexpr auto x = 2 * d;
+        constexpr auto y = d * 2U;
+        constexpr auto z = d * 2.0;
+        return x.get() == 6.0f && y.get() == 6.0f && z.get() == 6.0f;
+    }(),
+    "mixed scalar overloads failed");
 
-static_assert([]
-              {
-    constexpr Length d{100.0f};
-    constexpr Time t{10.0f};
-    constexpr Speed v = d / t;
-    return v.get() == 10.0f; }(), "speed = length / time failed");
+static_assert(
+    [] {
+        constexpr Length d{100.0f};
+        constexpr Time t{10.0f};
+        constexpr Speed v = d / t;
+        return v.get() == 10.0f;
+    }(),
+    "speed = length / time failed");
 
-static_assert([]
-              {
-    constexpr Speed v{10.0f};
-    constexpr Time t{2.0f};
-    constexpr Acceleration a = v / t;
-    return a.get() == 5.0f; }(), "acceleration = speed / time failed");
+static_assert(
+    [] {
+        constexpr Speed v{10.0f};
+        constexpr Time t{2.0f};
+        constexpr Acceleration a = v / t;
+        return a.get() == 5.0f;
+    }(),
+    "acceleration = speed / time failed");
 
-static_assert([]
-              {
-    constexpr Mass m{2.0f};
-    constexpr Acceleration a{10.0f};
-    constexpr Force f = m * a;
-    return f.get() == 20.0f; }(), "force = mass * acceleration failed");
+static_assert(
+    [] {
+        constexpr Mass m{2.0f};
+        constexpr Acceleration a{10.0f};
+        constexpr Force f = m * a;
+        return f.get() == 20.0f;
+    }(),
+    "force = mass * acceleration failed");
 
-static_assert([]
-              {
-    constexpr Force f{10.0f};
-    constexpr Length d{3.0f};
-    constexpr Energy e = f * d;
-    return e.get() == 30.0f; }(), "energy = force * Length failed");
+static_assert(
+    [] {
+        constexpr Force f{10.0f};
+        constexpr Length d{3.0f};
+        constexpr Energy e = f * d;
+        return e.get() == 30.0f;
+    }(),
+    "energy = force * Length failed");
 
-static_assert([]
-              {
-    constexpr Length l{4.0f};
-    constexpr Area a = l * l;
-    return a.get() == 16.0f; }(), "area = length * length failed");
+static_assert(
+    [] {
+        constexpr Length l{4.0f};
+        constexpr Area a = l * l;
+        return a.get() == 16.0f;
+    }(),
+    "area = length * length failed");
 
-static_assert([]
-              {
-    constexpr Radian rad{3.14f};
-    constexpr Radian x = rad + rad;
-    return x.get() == 6.28f; }(), "radian addition failed");
+static_assert(
+    [] {
+        constexpr Radian rad{3.14f};
+        constexpr Radian x = rad + rad;
+        return x.get() == 6.28f;
+    }(),
+    "radian addition failed");
 
-static_assert([]
-              {
-    constexpr Time t{0.5f};
-    constexpr Hertz hz = 1.0f / t;
-    return hz.get() == 2.0f; }(), "hz = 1 / time failed");
+static_assert(
+    [] {
+        constexpr Time t{0.5f};
+        constexpr Hertz hz = 1.0f / t;
+        return hz.get() == 2.0f;
+    }(),
+    "hz = 1 / time failed");
 
 using LengthI32 = unit_t<std::int32_t, LengthTag>;
 using TimeU64 = unit_t<std::uint64_t, TimeTag>;
@@ -116,37 +143,99 @@ using TimeU64 = unit_t<std::uint64_t, TimeTag>;
 using SpeedD = unit_t<double, SpeedTag>;
 using EnergyD = unit_t<double, EnergyTag>;
 
-static_assert([]
-            {
-    constexpr LengthI32 d{std::int32_t{300}};
-    constexpr TimeU64 t{static_cast<std::uint64_t>(20)};
-    constexpr SpeedD s{static_cast<double>(d.get()) / static_cast<double>(t.get())};
-    return s.get() == 15.0; }(), "✅ correct casting: int32_t / uint64_t -> double = SpeedD");
+static_assert(
+    [] {
+        constexpr LengthI32 d{std::int32_t{300}};
+        constexpr TimeU64 t{static_cast<std::uint64_t>(20)};
+        constexpr SpeedD s{static_cast<double>(d.get()) / static_cast<double>(t.get())};
+        return s.get() == 15.0;
+    }(),
+    "✅ correct casting: int32_t / uint64_t -> double = SpeedD");
 
-static_assert([]
-              {
-    constexpr unit_t<std::uint16_t, TimeTag> t{static_cast<std::uint16_t>(4)};
-    constexpr auto raw = 8 / static_cast<int>(t.get());
-    constexpr unit_t<std::uint16_t, HertzTag> hz{static_cast<std::uint16_t>(raw)};
-    return hz.get() == 2; }(), "✅ correct casting: scalar / strong<uint16_t> = strong<uint16_t>");
+static_assert(
+    [] {
+        constexpr unit_t<std::uint16_t, TimeTag> t{static_cast<std::uint16_t>(4)};
+        constexpr auto raw = 8 / static_cast<int>(t.get());
+        constexpr unit_t<std::uint16_t, HertzTag> hz{static_cast<std::uint16_t>(raw)};
+        return hz.get() == 2;
+    }(),
+    "✅ correct casting: scalar / strong<uint16_t> = strong<uint16_t>");
 
-static_assert([]
-              {
-    constexpr unit_t<std::int16_t, LengthTag> l{static_cast<std::int16_t>(5)};
-    constexpr auto raw = static_cast<int>(l.get()) * static_cast<int>(l.get());
-    constexpr unit_t<std::int16_t, AreaTag> a{static_cast<std::int16_t>(raw)};
-    return a.get() == 25; }(), "✅ correct casting: int16_t * int16_t = Area");
+static_assert(
+    [] {
+        constexpr unit_t<std::int16_t, LengthTag> l{static_cast<std::int16_t>(5)};
+        constexpr auto raw = static_cast<int>(l.get()) * static_cast<int>(l.get());
+        constexpr unit_t<std::int16_t, AreaTag> a{static_cast<std::int16_t>(raw)};
+        return a.get() == 25;
+    }(),
+    "✅ correct casting: int16_t * int16_t = Area");
 
-static_assert([]
-              {
-    constexpr unit_t<double, ForceTag> f{3.5};
-    constexpr unit_t<double, LengthTag> d{2.0};
-    constexpr EnergyD e{f.get() * d.get()};
-    return e.get() == 7.0; }(), "✅ correct casting: double force * length = energy");
+static_assert(
+    [] {
+        constexpr unit_t<double, ForceTag> f{3.5};
+        constexpr unit_t<double, LengthTag> d{2.0};
+        constexpr EnergyD e{f.get() * d.get()};
+        return e.get() == 7.0;
+    }(),
+    "✅ correct casting: double force * length = energy");
 
-static_assert([]
-              {
-    constexpr auto t = unit_t<std::int32_t, TimeTag>{std::int32_t{4}};
-    constexpr auto raw = 8.0 / static_cast<double>(t.get());
-    constexpr unit_t<double, HertzTag> hz{raw};
-    return hz.get() == 2.0; }(), "✅ correct casting: scalar double / int32_t strong = double hertz");
+static_assert(
+    [] {
+        constexpr auto t = unit_t<std::int32_t, TimeTag>{std::int32_t{4}};
+        constexpr auto raw = 8.0 / static_cast<double>(t.get());
+        constexpr unit_t<double, HertzTag> hz{raw};
+        return hz.get() == 2.0;
+    }(),
+    "✅ correct casting: scalar double / int32_t strong = double hertz");
+
+// ---- mixed representations promote to the common type in either operand order ----
+
+using Ld = unit_t<double, LengthTag>;
+using Lf = unit_t<float, LengthTag>;
+using Td = unit_t<double, TimeTag>;
+
+static_assert(std::is_same_v<decltype(Lf{} + Ld{}), Ld>, "float + double is double");
+static_assert(std::is_same_v<decltype(Ld{} + Lf{}), Ld>, "double + float is double");
+static_assert((Lf{1.5f} + Ld{1.25}).get() == 2.75, "float + double keeps the double's precision");
+static_assert((Lf{1.5f} - Ld{1.25}).get() == 0.25, "float - double keeps the double's precision");
+static_assert(std::is_same_v<decltype(unit_t<std::int32_t, LengthTag>{} - unit_t<std::int64_t, LengthTag>{}),
+                             unit_t<std::int64_t, LengthTag>>,
+              "int32 - int64 is int64");
+static_assert(std::is_same_v<decltype(Lf{} / Td{}), unit_t<double, SpeedTag>>, "float m / double s is double m/s");
+static_assert(std::is_same_v<decltype(Lf{} / Ld{}), double>, "float m / double m is a bare double");
+static_assert(std::is_same_v<decltype(1 / Td{}), unit_t<double, HertzTag>>, "int / double s is double Hz");
+static_assert((1 / Td{0.5}).get() == 2.0, "1 / 0.5 s = 2 Hz");
+
+// ---- derivations follow from dimension exponents, no per-pair rule ----
+
+template <typename A, typename B>
+concept CanAdd = requires(A a, B b) { a + b; };
+
+using Power = unit_t<float, PowerTag>;
+using Torque = unit_t<float, TorqueTag>;
+using AngularVelocity = unit_t<float, AngularVelocityTag>;
+
+static_assert(std::is_same_v<decltype(Length{} / Speed{}), Time>, "Length / Speed = Time (time to target)");
+static_assert((Length{100.0f} / Speed{25.0f}).get() == 4.0f, "100 m at 25 m/s is 4 s");
+static_assert(std::is_same_v<decltype(Area{} / Length{}), Length>, "Area / Length = Length");
+static_assert(std::is_same_v<decltype(Force{} / Mass{}), Acceleration>, "Force / Mass = Acceleration");
+static_assert(std::is_same_v<decltype(Energy{} / Force{}), Length>, "Energy / Force = Length");
+static_assert(std::is_same_v<decltype(Speed{} / Acceleration{}), Time>, "Speed / Acceleration = Time");
+static_assert(std::is_same_v<decltype(Power{} / Force{}), Speed>, "Power / Force = Speed");
+static_assert(std::is_same_v<decltype(Speed{} * Speed{}), unit_t<float, Dim<2, 0, -2>>>,
+              "Speed * Speed is the unnamed dimension m2/s2");
+static_assert(std::is_same_v<decltype(Energy{} / Mass{}), decltype(Speed{} * Speed{})>,
+              "J/kg and m2/s2 are the same dimension");
+static_assert(std::is_same_v<decltype(Speed{} * Speed{} * Mass{}), Energy>,
+              "an unnamed dimension composes back to a named tag");
+static_assert(std::is_same_v<decltype(Hertz{} * Time{}), float>, "dimensionless result is the bare rep");
+static_assert(std::is_same_v<decltype(Radian{} * Radian{}), Steradian>, "rad * rad = sr");
+static_assert(std::is_same_v<decltype(Radian{} / Time{}), AngularVelocity>, "rad / s = rad/s, not Hz");
+static_assert(!std::is_same_v<AngularVelocity, Hertz>, "angular velocity and frequency stay distinct");
+static_assert(std::is_same_v<decltype(Torque{} * AngularVelocity{}), Power>, "Nm * rad/s = W");
+static_assert(std::is_same_v<decltype(Power{} / Torque{}), AngularVelocity>, "W / Nm = rad/s");
+static_assert(std::is_same_v<decltype(Power{} / AngularVelocity{}), Torque>, "W / (rad/s) = Nm");
+static_assert(!CanAdd<Energy, Torque>, "J + Nm must not compile: same dimension, different kind");
+static_assert(!CanAdd<Length, Time>, "m + s must not compile");
+static_assert(!CanAdd<Length, Area>, "m + m2 must not compile");
+// NOLINTEND(readability-magic-numbers,readability-identifier-length,readability-uppercase-literal-suffix)

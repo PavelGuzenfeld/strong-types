@@ -64,9 +64,9 @@ struct tag_suffix<HertzTag>
     static constexpr std::string_view value = "Hz";
 };
 template <>
-struct tag_suffix<CelsiusTag>
+struct tag_suffix<TemperatureTag>
 {
-    static constexpr std::string_view value = "degC";
+    static constexpr std::string_view value = "K";
 };
 template <>
 struct tag_suffix<VoltTag>
@@ -112,6 +112,20 @@ template <>
 struct tag_suffix<TorqueTag>
 {
     static constexpr std::string_view value = "Nm";
+};
+
+// ---- quantity point -> suffix override (an origin can rename the scale) ----
+
+template <typename Tag, typename Origin>
+struct point_suffix
+{
+    static constexpr std::string_view value = tag_suffix<Tag>::value;
+};
+
+template <>
+struct point_suffix<TemperatureTag, CelsiusOrigin>
+{
+    static constexpr std::string_view value = "degC";
 };
 
 // ---- scaled unit -> suffix override ----
@@ -252,7 +266,7 @@ struct fmt::formatter<strong_types::QuantityPoint<T, Tag, Origin>> : fmt::format
     auto format(const strong_types::QuantityPoint<T, Tag, Origin> &val, FormatContext &ctx) const
     {
         fmt::formatter<T>::format(val.get(), ctx);
-        constexpr auto suffix = strong_types::tag_suffix<Tag>::value;
+        constexpr auto suffix = strong_types::point_suffix<Tag, Origin>::value;
         if constexpr (!suffix.empty())
         {
             fmt::format_to(ctx.out(), " {}", suffix);

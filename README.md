@@ -9,51 +9,49 @@
 ## Features
 
 - **constexpr-everything** — compile-time math where supported
-- **SI units** with trait-based dimensional analysis (length, mass, time, speed, force, energy, power, pressure, etc.)
-- **scaled units** — `Kilometers`, `Milliseconds`, `Grams`, `KilometersPerHour`, etc. with compile-time ratio conversions
+- **SI units** with dimensional analysis from exponent vectors — `Length / Speed` is `Time` without a rule written for it
+- **scaled units** — `Kilometers`, `Milliseconds`, `Grams`, `KilometersPerHour`, etc. with compile-time ratio conversions; an integer representation converts exactly or does not compile
 - **user-defined literals** — `5.0_m`, `9.81_mps2`, `100.0_km`, `36.0_kmh`, `500.0_ms`
 - **opt-in `{fmt}` formatting** — `fmt::format("{:.2f}", 3.14_km)` → `"3.14 km"`
 - **scalar + vector math** with full STL iterator compatibility (`AlignedArray`)
 - **compile-time validation** through `static_assert` tests
-- **narrowing protection** on `ScaledUnit` construction (same two-overload pattern as `Strong<T, Tag>`)
-- **quantity points** (affine types) — `QuantityPoint<T, Tag, Origin>` for absolute positions (MSL altitude, GPS coords) with type-safe displacement arithmetic
-- **safe integer math** — `std::expected`-based overflow/underflow/division-by-zero detection for integer operations and scaled conversions
+- **narrowing protection** — construction from a mismatched type is a `static_assert`; widening integers are accepted
+- **quantity points** (affine types) — `QuantityPoint<T, Tag, Origin>` for absolute positions (MSL altitude, Celsius readings) with type-safe displacement arithmetic
+- **checked integer math** — `std::expected`-based overflow/underflow/division-by-zero/truncation detection for integer operations and scaled conversions
 - **CI** — GCC 13/14, Clang 17/18, MSVC × Debug/Release
 
 ## Comparison with Alternatives
 
-| Feature | **strong-types** | [mp-units](https://github.com/mpusz/mp-units) | [Au](https://github.com/aurora-opensource/au) | [nholthaus/units](https://github.com/nholthaus/units) | [Boost.Units](https://www.boost.org/doc/libs/release/libs/units/) |
-|---|---|---|---|---|---|
-| C++ standard | **C++23** | C++20 | C++14 | C++14 | C++98 |
-| Header-only | yes | no (Conan/vcpkg) | yes | yes (single header) | no (Boost) |
-| Dependencies | **zero** | gsl-lite or std | none | none | Boost |
-| Approximate LOC | **~1 500** | ~30 000 | ~15 000 | ~12 000 (single header) | ~20 000 |
-| constexpr | **everything** | most ops | most ops | partial | no |
-| Concepts / `<=>` | yes | yes | no | no | no |
-| Custom non-arithmetic T | **yes** (`Strong<Vec2, Tag>`) | no | no | no | no |
-| Narrowing protection | **yes** (static_assert) | yes | yes (safe casts) | no | no |
-| Dimensional analysis | trait-based, user-extensible | automatic | automatic | automatic | MPL-based |
-| Scaled units (km, ms) | yes (`ScaledUnit<T,Tag,Ratio>`) | yes | yes | yes | yes |
-| User-defined literals | yes (18 base + 15 scaled) | yes | yes | yes | no |
-| `{fmt}` / `std::format` | opt-in `{fmt}` | yes | yes | `<iostream>` | `<iostream>` |
-| Chrono interop | yes | yes | yes | yes | no |
-| Quantity points / affine | **yes** (`QuantityPoint`) | yes | yes | no | no |
-| Integer overflow safety | **yes** (`safe_math.hpp`) | partial | **best-in-class** | unsafe | no |
-| CI matrix (compilers) | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | Boost CI |
-| Maintained | **active** | **active** (ISO proposal) | **active** | active (3.x) | unmaintained since 2010 |
+The difference that can be measured is compile time. One translation unit computing
+`speed = length / time`, gcc 16.0.1, `-O2 -std=c++23`, same host, 2026-09-12:
+
+| | compile time | preprocessed lines | generated code |
+|---|---|---|---|
+| raw `double` | 0.01 s | 7 | `divsd %xmm1, %xmm0; ret` |
+| **strong-types** (`si.hpp`) | 0.03 s | 7,659 | identical |
+| [mp-units](https://github.com/mpusz/mp-units) (`si.h` + `isq.h`) | 3.07 s | 145,896 | identical |
+
+The whole library is about 1,900 lines of headers with no dependencies beyond the standard library.
+What it does with them: dimensional analysis from exponent vectors, affine quantity points, scaled
+units with exact-or-refused integer conversions, `std::expected` checked arithmetic, and a
+`Strong<T, Tag>` wrapper that works around a vector or matrix type without demanding operators the
+type does not have.
+
+What it does not do, and where [mp-units](https://github.com/mpusz/mp-units) or
+[Au](https://github.com/aurora-opensource/au) are the right choice: hundreds of predefined units,
+unit symbols and text output, ISQ quantity kinds and hierarchies, unit-aware math functions,
+C++20 or C++14 support, and an ISO standardisation track.
 
 ### When to choose strong-types
 
-- You want **zero-dependency, minimal footprint** — drop a few headers into your project and go
-- You need `Strong<T, Tag>` with **non-arithmetic T** (vectors, quaternions, custom math types)
-- You prefer **explicit trait rules** you can read and extend over automatic dimension deduction
-- Your project already requires **C++23** and you want to leverage concepts, `<=>`, and `constexpr` throughout
-- You value **fast compile times** — ~1 500 LOC means negligible overhead
+- Compile time matters and you need a handful of quantities, not a catalogue
+- You wrap your own vector or matrix type and want only the operators it has
+- C++23 is available and you want a model you can read in one sitting
 
 ### When to choose something else
 
-- You need **hundreds of units** out of the box (mp-units, Au)
-- You are stuck on **C++14/17** (Au, nholthaus)
+- You need hundreds of units, symbols, or quantity kinds out of the box (mp-units, Au)
+- You are on C++14, C++17 or C++20 (Au, nholthaus/units, mp-units)
 
 ## Installation
 
@@ -103,6 +101,9 @@ constexpr auto time = 20.0_s;
 constexpr auto speed = distance / time;
 static_assert(speed.get() == 5.0);  // Speed = Length / Time
 ```
+
+Operands with different representations promote to `std::common_type_t` of the two, so
+`unit_t<float, LengthTag>` plus `unit_t<double, LengthTag>` is `unit_t<double, LengthTag>` in either order.
 
 ### Scaled units
 
@@ -180,6 +181,10 @@ constexpr Position b{5.0f};
 static_assert((a + b).get() == 15.0f);
 ```
 
+`T` does not have to be arithmetic. Each operator is constrained on the expression it performs, so a
+`Strong<Vec3, PositionTag>` supports `+`, `-`, scalar `*` and `/`, and `==` if `Vec3` does, and
+`a * b` or `a < b` fails at the call site when `Vec3` has no such operator.
+
 ### Quantity points (affine types)
 
 ```cpp
@@ -206,10 +211,20 @@ static_assert(diff.get() == 30.0);
 // auto nonsense = msl + shifted;               // compile error: point + point
 ```
 
+Temperature is modelled the same way. `Celsius<T>` is a `QuantityPoint` whose difference type is the
+kelvin interval `unit_t<T, TemperatureTag>`:
+
+```cpp
+constexpr auto delta = 30.0_degC - 20.0_degC;   // unit_t<double, TemperatureTag>, 10 K
+constexpr auto warmer = 20.0_degC + 5.0_K;      // Celsius<double>, 25 degC
+// auto nonsense = 20.0_degC + 30.0_degC;       // compile error: point + point
+```
+
 ### Safe integer math
 
 ```cpp
 #include "strong-types/safe_math.hpp"
+#include "strong-types/si_scaled.hpp"
 
 using namespace strong_types;
 
@@ -247,56 +262,51 @@ static_assert(base5.value().get() == 5000);
 
 ### SI Tags
 
-| Tag | Base Unit | Description |
-|-----|-----------|-------------|
-| `LengthTag` | m | Length |
-| `MassTag` | kg | Mass |
-| `TimeTag` | s | Time |
-| `AreaTag` | m2 | Area |
-| `SpeedTag` | m/s | Speed |
-| `AccelerationTag` | m/s2 | Acceleration |
-| `ForceTag` | N | Force |
-| `EnergyTag` | J | Energy |
-| `PowerTag` | W | Power |
-| `PressureTag` | Pa | Pressure |
-| `HertzTag` | Hz | Frequency |
-| `CelsiusTag` | degC | Temperature |
-| `VoltTag` | V | Voltage |
-| `RadianTag` | rad | Angle |
-| `SteradianTag` | sr | Solid angle |
-| `AngularVelocityTag` | rad/s | Angular velocity |
-| `VolumeTag` | m3 | Volume |
-| `DensityTag` | kg/m3 | Density |
-| `TorqueTag` | Nm | Torque |
+| Tag | Base Unit | Description | `Dim<L, M, T, I, Θ, N, J, A>` |
+|-----|-----------|-------------|-------------------------------|
+| `LengthTag` | m | Length | `1` |
+| `MassTag` | kg | Mass | `0, 1` |
+| `TimeTag` | s | Time | `0, 0, 1` |
+| `AreaTag` | m2 | Area | `2` |
+| `VolumeTag` | m3 | Volume | `3` |
+| `SpeedTag` | m/s | Speed | `1, 0, -1` |
+| `AccelerationTag` | m/s2 | Acceleration | `1, 0, -2` |
+| `ForceTag` | N | Force | `1, 1, -2` |
+| `PressureTag` | Pa | Pressure | `-1, 1, -2` |
+| `EnergyTag` | J | Energy | `2, 1, -2` |
+| `PowerTag` | W | Power | `2, 1, -3` |
+| `HertzTag` | Hz | Frequency | `0, 0, -1` |
+| `DensityTag` | kg/m3 | Density | `-3, 1` |
+| `VoltTag` | V | Voltage | `2, 1, -3, -1` |
+| `TemperatureTag` | K | Temperature interval | `0, 0, 0, 0, 1` |
+| `RadianTag` | rad | Angle | `0, 0, 0, 0, 0, 0, 0, 1` |
+| `SteradianTag` | sr | Solid angle | `0, 0, 0, 0, 0, 0, 0, 2` |
+| `AngularVelocityTag` | rad/s | Angular velocity | `0, 0, -1, 0, 0, 0, 0, 1` |
+| `TorqueTag` | Nm | Torque (J/rad) | `2, 1, -2, 0, 0, 0, 0, -1` |
 
-### Dimensional Algebra Rules
+### Dimensional Algebra
 
-| Expression | Result | Rule |
-|------------|--------|------|
-| `Length / Time` | Speed | `m / s = m/s` |
-| `Speed / Time` | Acceleration | `(m/s) / s = m/s2` |
-| `Speed * Time` | Length | `(m/s) * s = m` |
-| `Mass * Acceleration` | Force | `kg * m/s2 = N` |
-| `Force * Length` | Energy | `N * m = J` |
-| `Energy / Time` | Power | `J / s = W` |
-| `Power * Time` | Energy | `W * s = J` |
-| `Force / Area` | Pressure | `N / m2 = Pa` |
-| `Pressure * Area` | Force | `Pa * m2 = N` |
-| `Radian / Time` | AngularVelocity | `rad / s = rad/s` |
-| `AngularVelocity * Time` | Radian | `(rad/s) * s = rad` |
-| `Length * Length` | Area | `m * m = m2` |
-| `Length * Area` | Volume | `m * m2 = m3` |
-| `Volume / Length` | Area | `m3 / m = m2` |
-| `Volume / Area` | Length | `m3 / m2 = m` |
-| `Mass / Volume` | Density | `kg / m3 = kg/m3` |
-| `Density * Volume` | Mass | `(kg/m3) * m3 = kg` |
-| `Torque * AngularVelocity` | Power | `Nm * rad/s = W` |
-| `Power / AngularVelocity` | Torque | `W / (rad/s) = Nm` |
-| `Power / Torque` | AngularVelocity | `W / Nm = rad/s` |
-| `1 / Time` | Hertz | `1 / s = Hz` |
-| `Tag / Tag` | scalar | same-unit ratio |
+Every SI tag carries a `Dim<L, M, T, I, Θ, N, J, A>` exponent vector: length, mass, time, current,
+temperature, amount, luminous intensity, plane angle. `*` adds exponents, `/` subtracts them, and the
+result is the tag registered for that dimension. No rule is written per pair.
 
-All product rules are commutative (`A * B` and `B * A` both work). All same-tag types support `+` and `-`.
+| Expression | Result |
+|------------|--------|
+| `Length / Speed` | Time |
+| `Force / Mass` | Acceleration |
+| `Energy / Time` | Power |
+| `Radian / Time` | AngularVelocity |
+| `Speed * Speed` | `unit_t<T, Dim<2, 0, -2>>` — no named tag; `* Mass` composes on to Energy |
+| `Hertz * Time` | bare `T` (dimensionless) |
+| `Length / Length` | bare `T` |
+| `1 / Time` | Hertz |
+
+Angle is a dimension, so `Hertz` (s⁻¹) and `AngularVelocity` (rad·s⁻¹) are distinct types and `Torque`
+is J/rad rather than a second name for Energy. `+` and `-` require the same tag: `Energy + Torque` does
+not compile.
+
+A tag without a dimension keeps the explicit trait rules described under "Cross-Tag Arithmetic for
+Domain Types" below. Kinds work the same way: two tags with the same `Dim` stay distinct types.
 
 ### Scaled Unit Aliases
 
@@ -334,7 +344,9 @@ All product rules are commutative (`A * B` and `B * A` both work). All same-tag 
 
 ### Base Unit UDLs (`si_literals`)
 
-`_m`, `_kg`, `_s`, `_m2`, `_mps`, `_mps2`, `_N`, `_J`, `_Hz`, `_degC`, `_V`, `_rad`, `_sr`, `_W`, `_Pa`, `_rps`, `_m3`, `_Nm`
+`_m`, `_kg`, `_s`, `_m2`, `_mps`, `_mps2`, `_N`, `_J`, `_Hz`, `_K`, `_V`, `_rad`, `_sr`, `_W`, `_Pa`, `_rps`, `_m3`, `_Nm`
+
+`_degC` is a `Celsius<double>` quantity point, not an interval (see below).
 
 ## Tests
 
@@ -390,7 +402,8 @@ This is the correct default — opt in only when the relationship is meaningful.
 
 ### Widening Integer Construction
 
-`Strong<uint64_t, Tag>` now accepts smaller integer types without explicit casting:
+`Strong`, `ScaledUnit` and `QuantityPoint` share one rule (`WideningIntegral<From, To>`): an integer
+representation accepts any integer type of the same or smaller size without a cast.
 
 ```cpp
 struct MyTag {};
