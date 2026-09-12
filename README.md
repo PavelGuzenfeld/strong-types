@@ -61,7 +61,7 @@ C++20 or C++14 support, and an ISO standardisation track.
 include(FetchContent)
 FetchContent_Declare(strong-types
     GIT_REPOSITORY https://github.com/PavelGuzenfeld/strong-types.git
-    GIT_TAG v1.1.23
+    GIT_TAG v1.1.24
 )
 FetchContent_MakeAvailable(strong-types)
 
