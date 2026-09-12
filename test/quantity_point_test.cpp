@@ -9,8 +9,12 @@ using namespace strong_types::si_scaled_literals;
 
 // ---- Origin tags ----
 
-struct MSLOrigin {};
-struct AGLOrigin {};
+struct MSLOrigin
+{
+};
+struct AGLOrigin
+{
+};
 
 using AltitudeMSL = QuantityPoint<double, LengthTag, MSLOrigin>;
 using AltitudeAGL = QuantityPoint<double, LengthTag, AGLOrigin>;
@@ -158,6 +162,17 @@ concept CanSubtract = requires(A a, B b) { a - b; };
 
 static_assert(!CanSubtract<AltitudeMSL, AltitudeAGL>, "different-origin subtraction must not compile");
 static_assert(!CanSubtract<AltitudeAGL, AltitudeMSL>, "different-origin subtraction must not compile (reversed)");
+
+// ---- Celsius is affine: readings subtract to a kelvin interval and never add ----
+
+static_assert(!CanAdd<Celsius<double>, Celsius<double>>, "20 degC + 30 degC must not compile");
+static_assert(std::is_same_v<decltype(30.0_degC - 20.0_degC), unit_t<double, TemperatureTag>>,
+              "reading - reading is a kelvin interval");
+static_assert((30.0_degC - 20.0_degC).get() == 10.0, "30 degC - 20 degC = 10 K");
+static_assert(std::is_same_v<decltype(20.0_degC + 5.0_K), Celsius<double>>, "reading + interval is a reading");
+static_assert((20.0_degC + 5.0_K).get() == 25.0, "20 degC + 5 K = 25 degC");
+static_assert((20.0_degC - 5.0_K).get() == 15.0, "20 degC - 5 K = 15 degC");
+static_assert((5.0_K + 3.0_K).get() == 8.0, "kelvin intervals add");
 
 // ---- Detector trait ----
 

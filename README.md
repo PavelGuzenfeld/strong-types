@@ -206,6 +206,15 @@ static_assert(diff.get() == 30.0);
 // auto nonsense = msl + shifted;               // compile error: point + point
 ```
 
+Temperature is modelled the same way. `Celsius<T>` is a `QuantityPoint` whose difference type is the
+kelvin interval `unit_t<T, TemperatureTag>`:
+
+```cpp
+constexpr auto delta = 30.0_degC - 20.0_degC;   // unit_t<double, TemperatureTag>, 10 K
+constexpr auto warmer = 20.0_degC + 5.0_K;      // Celsius<double>, 25 degC
+// auto nonsense = 20.0_degC + 30.0_degC;       // compile error: point + point
+```
+
 ### Safe integer math
 
 ```cpp
@@ -264,7 +273,7 @@ static_assert(base5.value().get() == 5000);
 | `HertzTag` | Hz | Frequency | `0, 0, -1` |
 | `DensityTag` | kg/m3 | Density | `-3, 1` |
 | `VoltTag` | V | Voltage | `2, 1, -3, -1` |
-| `CelsiusTag` | degC | Temperature | `0, 0, 0, 0, 1` |
+| `TemperatureTag` | K | Temperature interval | `0, 0, 0, 0, 1` |
 | `RadianTag` | rad | Angle | `0, 0, 0, 0, 0, 0, 0, 1` |
 | `SteradianTag` | sr | Solid angle | `0, 0, 0, 0, 0, 0, 0, 2` |
 | `AngularVelocityTag` | rad/s | Angular velocity | `0, 0, -1, 0, 0, 0, 0, 1` |
@@ -330,7 +339,9 @@ Domain Types" below. Kinds work the same way: two tags with the same `Dim` stay 
 
 ### Base Unit UDLs (`si_literals`)
 
-`_m`, `_kg`, `_s`, `_m2`, `_mps`, `_mps2`, `_N`, `_J`, `_Hz`, `_degC`, `_V`, `_rad`, `_sr`, `_W`, `_Pa`, `_rps`, `_m3`, `_Nm`
+`_m`, `_kg`, `_s`, `_m2`, `_mps`, `_mps2`, `_N`, `_J`, `_Hz`, `_K`, `_V`, `_rad`, `_sr`, `_W`, `_Pa`, `_rps`, `_m3`, `_Nm`
+
+`_degC` is a `Celsius<double>` quantity point, not an interval (see below).
 
 ## Tests
 

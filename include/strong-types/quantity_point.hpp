@@ -31,8 +31,7 @@ struct QuantityPoint
         requires(!std::same_as<std::remove_cvref_t<U>, T>)
     explicit QuantityPoint(U && /*unused*/) // NOLINT(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
     {
-        static_assert(always_false_v<U>,
-                      "narrowing/mismatched construction of QuantityPoint — cast to T first");
+        static_assert(always_false_v<U>, "narrowing/mismatched construction of QuantityPoint — cast to T first");
     }
 
     constexpr QuantityPoint() noexcept
@@ -58,11 +57,20 @@ inline constexpr bool is_quantity_point_v = false;
 template <typename T, typename Tag, typename Origin>
 inline constexpr bool is_quantity_point_v<QuantityPoint<T, Tag, Origin>> = true;
 
+// ---- Celsius: a temperature reading; the difference of two readings is a kelvin interval ----
+
+struct CelsiusOrigin
+{
+};
+
+template <typename T>
+using Celsius = QuantityPoint<T, TemperatureTag, CelsiusOrigin>;
+
 // ---- Point - Point (same Origin) → displacement ----
 
 template <typename T, typename Tag, typename Origin>
 [[nodiscard]] constexpr unit_t<T, Tag> operator-(const QuantityPoint<T, Tag, Origin> &lhs,
-                                                  const QuantityPoint<T, Tag, Origin> &rhs)
+                                                 const QuantityPoint<T, Tag, Origin> &rhs)
 {
     return unit_t<T, Tag>{lhs.get() - rhs.get()};
 }
@@ -71,7 +79,7 @@ template <typename T, typename Tag, typename Origin>
 
 template <typename T, typename Tag, typename Origin>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const QuantityPoint<T, Tag, Origin> &pt,
-                                                                 const unit_t<T, Tag> &disp)
+                                                                const unit_t<T, Tag> &disp)
 {
     return QuantityPoint<T, Tag, Origin>{pt.get() + disp.get()};
 }
@@ -80,7 +88,7 @@ template <typename T, typename Tag, typename Origin>
 
 template <typename T, typename Tag, typename Origin>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const unit_t<T, Tag> &disp,
-                                                                 const QuantityPoint<T, Tag, Origin> &pt)
+                                                                const QuantityPoint<T, Tag, Origin> &pt)
 {
     return QuantityPoint<T, Tag, Origin>{disp.get() + pt.get()};
 }
@@ -89,7 +97,7 @@ template <typename T, typename Tag, typename Origin>
 
 template <typename T, typename Tag, typename Origin>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator-(const QuantityPoint<T, Tag, Origin> &pt,
-                                                                 const unit_t<T, Tag> &disp)
+                                                                const unit_t<T, Tag> &disp)
 {
     return QuantityPoint<T, Tag, Origin>{pt.get() - disp.get()};
 }
@@ -98,7 +106,7 @@ template <typename T, typename Tag, typename Origin>
 
 template <typename T, typename Tag, typename Origin, typename R>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const QuantityPoint<T, Tag, Origin> &pt,
-                                                                 const ScaledUnit<T, Tag, R> &disp)
+                                                                const ScaledUnit<T, Tag, R> &disp)
 {
     return pt + disp.to_base();
 }
@@ -107,7 +115,7 @@ template <typename T, typename Tag, typename Origin, typename R>
 
 template <typename T, typename Tag, typename Origin, typename R>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator+(const ScaledUnit<T, Tag, R> &disp,
-                                                                 const QuantityPoint<T, Tag, Origin> &pt)
+                                                                const QuantityPoint<T, Tag, Origin> &pt)
 {
     return disp.to_base() + pt;
 }
@@ -116,7 +124,7 @@ template <typename T, typename Tag, typename Origin, typename R>
 
 template <typename T, typename Tag, typename Origin, typename R>
 [[nodiscard]] constexpr QuantityPoint<T, Tag, Origin> operator-(const QuantityPoint<T, Tag, Origin> &pt,
-                                                                 const ScaledUnit<T, Tag, R> &disp)
+                                                                const ScaledUnit<T, Tag, R> &disp)
 {
     return pt - disp.to_base();
 }

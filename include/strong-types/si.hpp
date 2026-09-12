@@ -93,7 +93,7 @@ STRONG_TYPES_SI_TAG(PowerTag, 2, 1, -3);
 STRONG_TYPES_SI_TAG(HertzTag, 0, 0, -1);
 STRONG_TYPES_SI_TAG(DensityTag, -3, 1);
 STRONG_TYPES_SI_TAG(VoltTag, 2, 1, -3, -1);
-STRONG_TYPES_SI_TAG(CelsiusTag, 0, 0, 0, 0, 1);
+STRONG_TYPES_SI_TAG(TemperatureTag, 0, 0, 0, 0, 1);
 STRONG_TYPES_SI_TAG(RadianTag, 0, 0, 0, 0, 0, 0, 0, 1);
 STRONG_TYPES_SI_TAG(SteradianTag, 0, 0, 0, 0, 0, 0, 0, 2);
 STRONG_TYPES_SI_TAG(AngularVelocityTag, 0, 0, -1, 0, 0, 0, 0, 1);

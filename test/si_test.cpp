@@ -13,7 +13,6 @@ using Force = unit_t<float, ForceTag>;
 using Energy = unit_t<float, EnergyTag>;
 using Area = unit_t<float, AreaTag>;
 using Hertz = unit_t<float, HertzTag>;
-using Celsius = unit_t<float, CelsiusTag>;
 using Volt = unit_t<float, VoltTag>;
 using Radian = unit_t<float, RadianTag>;
 using Steradian = unit_t<float, SteradianTag>;
