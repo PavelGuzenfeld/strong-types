@@ -71,8 +71,8 @@ struct Strong
 
     [[nodiscard]] auto operator<=>(const Strong &) const = default;
 
-protected:
-    T value_;
+private:
+    T value_{};
 };
 
 // ---- scalar division result trait ----
@@ -257,10 +257,14 @@ template <typename LHS, typename RHS>
 template <typename S>
 concept NotStrong = !is_strong_v<std::remove_cvref_t<S>>;
 
+// A fractional scalar cannot scale an integral rep: 5 m * 0.5 has no exact int answer.
+template <typename T, typename S>
+concept ScalesRep = !std::is_integral_v<T> || std::is_integral_v<S>;
+
 // ---- scalar overloads ----
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && requires(const T &val, S scalar) { val *scalar; }
+    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { val *scalar; }
 [[nodiscard]] constexpr auto operator*(const Strong<T, TAG> &lhs, S scalar)
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -274,7 +278,7 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && requires(const T &val, S scalar) { scalar *val; }
+    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { scalar *val; }
 [[nodiscard]] constexpr auto operator*(S scalar, const Strong<T, TAG> &rhs)
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -288,7 +292,7 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && requires(const T &val, S scalar) { val / scalar; }
+    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { val / scalar; }
 [[nodiscard]] constexpr auto operator/(const Strong<T, TAG> &lhs, S scalar) -> scalar_div_result_t<Strong<T, TAG>, S>
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -302,7 +306,7 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && requires(const T &val, S scalar) { scalar / val; }
+    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { scalar / val; }
 [[nodiscard]] constexpr auto operator/(S scalar, const Strong<T, TAG> &rhs)
 {
     using result_t = typename quotient_result<Strong<S, void>, Strong<T, TAG>>::type;

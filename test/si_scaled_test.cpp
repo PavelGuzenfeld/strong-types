@@ -184,4 +184,28 @@ static_assert(!CanScaleCast<Kilometers<int>, unit_t<int, LengthTag>>, "int m -> 
 static_assert(scale_cast<Minutes<int>>(Hours<int>{2}).get() == 120, "int hr -> min exact");
 static_assert(!CanScaleCast<Hours<int>, Minutes<int>>, "int min -> hr would truncate, refused");
 static_assert(CanScaleCast<Kilometers<double>, unit_t<double, LengthTag>>, "double m -> km stays available");
+
+// ---- scale_cast never narrows the rep ----
+
+static_assert(!CanScaleCast<Kilometers<int>, unit_t<double, LengthTag>>,
+              "double m -> int km would truncate the rep, refused");
+static_assert(!CanScaleCast<Millimeters<int>, unit_t<long long, LengthTag>>,
+              "long long m -> int mm would narrow, refused");
+static_assert(scale_cast<Millimeters<long long>>(unit_t<int, LengthTag>{3}).get() == 3000,
+              "int m -> long long mm widens");
+static_assert(!CanScaleCast<Minutes<int>, Hours<double>>, "double hr -> int min would truncate the rep, refused");
+static_assert(scale_cast<Minutes<long long>>(Hours<int>{2}).get() == 120, "int hr -> long long min widens the rep");
+
+// ---- a fractional scalar cannot scale an integral rep ----
+
+template <typename A, typename B>
+concept CanMultiply = requires(A a, B b) { a *b; };
+template <typename A, typename B>
+concept CanDivide = requires(A a, B b) { a / b; };
+
+static_assert(!CanMultiply<Kilometers<int>, double>, "int km * 0.5 would truncate the scalar, refused");
+static_assert(!CanMultiply<double, Kilometers<int>>, "0.5 * int km would truncate the scalar, refused");
+static_assert(!CanDivide<Kilometers<int>, double>, "int km / 0.5 would divide by a truncated zero, refused");
+static_assert((Kilometers<int>{5} * 2).get() == 10, "int km * integral scalar stays available");
+static_assert((Kilometers<double>{5.0} * 2).get() == 10.0, "double km * integral scalar stays available");
 // NOLINTEND(readability-magic-numbers,readability-identifier-length)

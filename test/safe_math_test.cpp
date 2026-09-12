@@ -159,4 +159,32 @@ static_assert(
     }(),
     "safe_scale_cast: 2200000 km -> mm overflows");
 
+// ---- a ratio that does not fit the rep is refused at compile time, never wrapped ----
+
+template <typename U>
+concept HasSafeToBase = requires(U u) { safe_to_base(u); };
+template <typename Target, typename From>
+concept CanSafeScaleCast = requires(From f) { safe_scale_cast<Target>(f); };
+
+static_assert(!HasSafeToBase<Days<std::int8_t>>, "day factor 86400 does not fit int8, refused");
+static_assert(HasSafeToBase<Days<std::int32_t>>, "day factor fits int32");
+static_assert(!HasSafeToBase<Grams<std::int8_t>>, "gram denominator 1000 does not fit int8, refused");
+static_assert(!CanSafeScaleCast<Grams<std::int8_t>, unit_t<std::int8_t, MassTag>>,
+              "kg -> g numerator 1000 does not fit int8, refused");
+static_assert(!CanSafeScaleCast<Kilometers<std::int8_t>, Millimeters<std::int8_t>>,
+              "mm -> km factor 1000000 does not fit int8, refused");
+static_assert(!CanSafeScaleCast<ScaledUnit<int, LengthTag, std::kilo>, unit_t<double, LengthTag>>,
+              "a floating base has no safe integral scale cast");
+
+// ---- safe_scale_cast: the rep conversion is checked, not cast ----
+
+using TinyMeters = ScaledUnit<std::int8_t, LengthTag, std::ratio<1>>;
+using TinyMinutes = ScaledUnit<std::int8_t, TimeTag, std::ratio<60>>;
+static_assert(safe_scale_cast<TinyMeters>(unit_t<int, LengthTag>{300}).error() == ArithmeticErrc::overflow,
+              "300 m does not fit an int8 rep");
+static_assert(safe_scale_cast<TinyMeters>(unit_t<int, LengthTag>{100}).value().get() == 100, "100 m fits an int8 rep");
+static_assert(safe_scale_cast<TinyMinutes>(Minutes<int>{300}).error() == ArithmeticErrc::overflow,
+              "300 min does not fit an int8 rep");
+static_assert(safe_scale_cast<TinyMinutes>(Minutes<int>{100}).value().get() == 100, "100 min fits an int8 rep");
+
 // NOLINTEND(readability-magic-numbers,readability-identifier-length)

@@ -200,6 +200,13 @@ static_assert(!strong_types::WideningIntegral<int, int>, "an exact match is not 
 
 static_assert(
     [] {
+        const strong_types::Strong<int, Dummy> zero;
+        return zero.get() == 0;
+    }(),
+    "a default-constructed Strong holds T{}, not an indeterminate value");
+
+static_assert(
+    [] {
         Dummy d{4.0f};
         d += Dummy{1.0f};
         d -= Dummy{1.0f};
@@ -318,6 +325,16 @@ static_assert(!CanMultiply<Displacement, Displacement>, "Vec2 has no v * v even 
 static_assert(!CanDivide<Displacement, Displacement>, "Vec2 has no v / v");
 static_assert(CanMultiply<Displacement, float>, "Vec2 * float exists, so Displacement * float exists");
 static_assert(!CanMultiply<float, Displacement>, "float * Vec2 does not exist, so neither does float * Displacement");
+
+using Count = strong_types::Strong<int, Dummy>;
+static_assert(!CanMultiply<Count, double>, "int rep * fractional scalar would truncate the scalar, refused");
+static_assert(!CanMultiply<double, Count>, "fractional scalar * int rep would truncate the scalar, refused");
+static_assert(!CanDivide<Count, double>, "int rep / 0.5 would divide by a truncated zero, refused");
+static_assert(!CanDivide<double, Count>, "fractional scalar / int rep would truncate the scalar, refused");
+static_assert(CanMultiply<Count, long>, "int rep * integral scalar stays available");
+static_assert(CanDivide<Count, long>, "int rep / integral scalar stays available");
+static_assert(CanMultiply<strong_types::Strong<double, Dummy>, int>, "floating rep * integral scalar stays available");
+static_assert((Count{5} * 2L).get() == 10, "int rep * integral scalar keeps the int rep");
 static_assert(!std::three_way_comparable<Displacement>, "an unordered T gives an unordered Strong");
 static_assert(std::equality_comparable<Displacement>, "Vec2 == Vec2 exists, so Displacement == Displacement exists");
 
