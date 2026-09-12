@@ -187,6 +187,24 @@ static_assert(
     }(),
     "✅ correct casting: scalar double / int32_t strong = double hertz");
 
+// ---- mixed representations promote to the common type in either operand order ----
+
+using Ld = unit_t<double, LengthTag>;
+using Lf = unit_t<float, LengthTag>;
+using Td = unit_t<double, TimeTag>;
+
+static_assert(std::is_same_v<decltype(Lf{} + Ld{}), Ld>, "float + double is double");
+static_assert(std::is_same_v<decltype(Ld{} + Lf{}), Ld>, "double + float is double");
+static_assert((Lf{1.5f} + Ld{1.25}).get() == 2.75, "float + double keeps the double's precision");
+static_assert((Lf{1.5f} - Ld{1.25}).get() == 0.25, "float - double keeps the double's precision");
+static_assert(std::is_same_v<decltype(unit_t<std::int32_t, LengthTag>{} - unit_t<std::int64_t, LengthTag>{}),
+                             unit_t<std::int64_t, LengthTag>>,
+              "int32 - int64 is int64");
+static_assert(std::is_same_v<decltype(Lf{} / Td{}), unit_t<double, SpeedTag>>, "float m / double s is double m/s");
+static_assert(std::is_same_v<decltype(Lf{} / Ld{}), double>, "float m / double m is a bare double");
+static_assert(std::is_same_v<decltype(1 / Td{}), unit_t<double, HertzTag>>, "int / double s is double Hz");
+static_assert((1 / Td{0.5}).get() == 2.0, "1 / 0.5 s = 2 Hz");
+
 // ---- derivations follow from dimension exponents, no per-pair rule ----
 
 template <typename A, typename B>

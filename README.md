@@ -104,6 +104,9 @@ constexpr auto speed = distance / time;
 static_assert(speed.get() == 5.0);  // Speed = Length / Time
 ```
 
+Operands with different representations promote to `std::common_type_t` of the two, so
+`unit_t<float, LengthTag>` plus `unit_t<double, LengthTag>` is `unit_t<double, LengthTag>` in either order.
+
 ### Scaled units
 
 ```cpp

@@ -119,14 +119,19 @@ struct tagged_result<T, Rule>
     using type = tagged_t<T, typename Rule::type>;
 };
 
+// Mixed representations follow the usual arithmetic conversions, independent of operand order
+template <typename LHS, typename RHS>
+using common_rep_t = std::common_type_t<typename LHS::value_type, typename RHS::value_type>;
+
 // Generic fallback: only works for Strong types
 template <typename LHS, typename RHS>
     requires requires {
         typename LHS::tag_type;
         typename RHS::tag_type;
+        typename common_rep_t<LHS, RHS>;
     }
 struct sum_result
-    : tagged_result<typename LHS::value_type, tag_sum_result<typename LHS::tag_type, typename RHS::tag_type>>
+    : tagged_result<common_rep_t<LHS, RHS>, tag_sum_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
 };
 
@@ -134,9 +139,10 @@ template <typename LHS, typename RHS>
     requires requires {
         typename LHS::tag_type;
         typename RHS::tag_type;
+        typename common_rep_t<LHS, RHS>;
     }
 struct difference_result
-    : tagged_result<typename LHS::value_type, tag_difference_result<typename LHS::tag_type, typename RHS::tag_type>>
+    : tagged_result<common_rep_t<LHS, RHS>, tag_difference_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
 };
 
@@ -144,9 +150,10 @@ template <typename LHS, typename RHS>
     requires requires {
         typename LHS::tag_type;
         typename RHS::tag_type;
+        typename common_rep_t<LHS, RHS>;
     }
 struct product_result
-    : tagged_result<typename LHS::value_type, tag_product_result<typename LHS::tag_type, typename RHS::tag_type>>
+    : tagged_result<common_rep_t<LHS, RHS>, tag_product_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
 };
 
@@ -154,9 +161,10 @@ template <typename LHS, typename RHS>
     requires requires {
         typename LHS::tag_type;
         typename RHS::tag_type;
+        typename common_rep_t<LHS, RHS>;
     }
 struct quotient_result
-    : tagged_result<typename LHS::value_type, tag_quotient_result<typename LHS::tag_type, typename RHS::tag_type>>
+    : tagged_result<common_rep_t<LHS, RHS>, tag_quotient_result<typename LHS::tag_type, typename RHS::tag_type>>
 {
 };
 
@@ -213,28 +221,32 @@ template <typename LHS, typename RHS>
     requires is_strong_v<LHS> && requires { typename sum_result<LHS, RHS>::type; }
 [[nodiscard]] constexpr auto operator+(const LHS &lhs, const RHS &rhs) -> typename sum_result<LHS, RHS>::type
 {
-    return typename sum_result<LHS, RHS>::type{lhs.get() + rhs.get()};
+    using R = common_rep_t<LHS, RHS>;
+    return typename sum_result<LHS, RHS>::type{static_cast<R>(lhs.get()) + static_cast<R>(rhs.get())};
 }
 
 template <typename LHS, typename RHS>
     requires is_strong_v<LHS> && requires { typename difference_result<LHS, RHS>::type; }
 [[nodiscard]] constexpr auto operator-(const LHS &lhs, const RHS &rhs) -> typename difference_result<LHS, RHS>::type
 {
-    return typename difference_result<LHS, RHS>::type{lhs.get() - rhs.get()};
+    using R = common_rep_t<LHS, RHS>;
+    return typename difference_result<LHS, RHS>::type{static_cast<R>(lhs.get()) - static_cast<R>(rhs.get())};
 }
 
 template <typename LHS, typename RHS>
     requires is_strong_v<LHS> && requires { typename product_result<LHS, RHS>::type; }
 [[nodiscard]] constexpr auto operator*(const LHS &lhs, const RHS &rhs) -> typename product_result<LHS, RHS>::type
 {
-    return typename product_result<LHS, RHS>::type{lhs.get() * rhs.get()};
+    using R = common_rep_t<LHS, RHS>;
+    return typename product_result<LHS, RHS>::type{static_cast<R>(lhs.get()) * static_cast<R>(rhs.get())};
 }
 
 template <typename LHS, typename RHS>
     requires is_strong_v<LHS> && requires { typename quotient_result<LHS, RHS>::type; }
 [[nodiscard]] constexpr auto operator/(const LHS &lhs, const RHS &rhs) -> typename quotient_result<LHS, RHS>::type
 {
-    return typename quotient_result<LHS, RHS>::type{lhs.get() / rhs.get()};
+    using R = common_rep_t<LHS, RHS>;
+    return typename quotient_result<LHS, RHS>::type{static_cast<R>(lhs.get()) / static_cast<R>(rhs.get())};
 }
 
 template <typename S>
@@ -289,7 +301,8 @@ template <typename T, typename TAG, Scalar S>
 [[nodiscard]] constexpr auto operator/(S scalar, const Strong<T, TAG> &rhs)
 {
     using result_t = typename quotient_result<Strong<S, void>, Strong<T, TAG>>::type;
-    return result_t{static_cast<T>(scalar) / rhs.get()};
+    using R = std::common_type_t<S, T>;
+    return result_t{static_cast<R>(scalar) / static_cast<R>(rhs.get())};
 }
 
 // ---- compound assignment ----
