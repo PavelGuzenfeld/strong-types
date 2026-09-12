@@ -9,51 +9,49 @@
 ## Features
 
 - **constexpr-everything** — compile-time math where supported
-- **SI units** with trait-based dimensional analysis (length, mass, time, speed, force, energy, power, pressure, etc.)
-- **scaled units** — `Kilometers`, `Milliseconds`, `Grams`, `KilometersPerHour`, etc. with compile-time ratio conversions
+- **SI units** with dimensional analysis from exponent vectors — `Length / Speed` is `Time` without a rule written for it
+- **scaled units** — `Kilometers`, `Milliseconds`, `Grams`, `KilometersPerHour`, etc. with compile-time ratio conversions; an integer representation converts exactly or does not compile
 - **user-defined literals** — `5.0_m`, `9.81_mps2`, `100.0_km`, `36.0_kmh`, `500.0_ms`
 - **opt-in `{fmt}` formatting** — `fmt::format("{:.2f}", 3.14_km)` → `"3.14 km"`
 - **scalar + vector math** with full STL iterator compatibility (`AlignedArray`)
 - **compile-time validation** through `static_assert` tests
-- **narrowing protection** on `ScaledUnit` construction (same two-overload pattern as `Strong<T, Tag>`)
-- **quantity points** (affine types) — `QuantityPoint<T, Tag, Origin>` for absolute positions (MSL altitude, GPS coords) with type-safe displacement arithmetic
-- **safe integer math** — `std::expected`-based overflow/underflow/division-by-zero detection for integer operations and scaled conversions
+- **narrowing protection** — construction from a mismatched type is a `static_assert`; widening integers are accepted
+- **quantity points** (affine types) — `QuantityPoint<T, Tag, Origin>` for absolute positions (MSL altitude, Celsius readings) with type-safe displacement arithmetic
+- **checked integer math** — `std::expected`-based overflow/underflow/division-by-zero/truncation detection for integer operations and scaled conversions
 - **CI** — GCC 13/14, Clang 17/18, MSVC × Debug/Release
 
 ## Comparison with Alternatives
 
-| Feature | **strong-types** | [mp-units](https://github.com/mpusz/mp-units) | [Au](https://github.com/aurora-opensource/au) | [nholthaus/units](https://github.com/nholthaus/units) | [Boost.Units](https://www.boost.org/doc/libs/release/libs/units/) |
-|---|---|---|---|---|---|
-| C++ standard | **C++23** | C++20 | C++14 | C++14 | C++98 |
-| Header-only | yes | no (Conan/vcpkg) | yes | yes (single header) | no (Boost) |
-| Dependencies | **zero** | gsl-lite or std | none | none | Boost |
-| Approximate LOC | **~1 500** | ~30 000 | ~15 000 | ~12 000 (single header) | ~20 000 |
-| constexpr | **everything** | most ops | most ops | partial | no |
-| Concepts / `<=>` | yes | yes | no | no | no |
-| Custom non-arithmetic T | **yes** (`Strong<Vec2, Tag>`) | no | no | no | no |
-| Narrowing protection | **yes** (static_assert) | yes | yes (safe casts) | no | no |
-| Dimensional analysis | trait-based, user-extensible | automatic | automatic | automatic | MPL-based |
-| Scaled units (km, ms) | yes (`ScaledUnit<T,Tag,Ratio>`) | yes | yes | yes | yes |
-| User-defined literals | yes (18 base + 15 scaled) | yes | yes | yes | no |
-| `{fmt}` / `std::format` | opt-in `{fmt}` | yes | yes | `<iostream>` | `<iostream>` |
-| Chrono interop | yes | yes | yes | yes | no |
-| Quantity points / affine | **yes** (`QuantityPoint`) | yes | yes | no | no |
-| Integer overflow safety | **yes** (`safe_math.hpp`) | partial | **best-in-class** | unsafe | no |
-| CI matrix (compilers) | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | GCC/Clang/MSVC | Boost CI |
-| Maintained | **active** | **active** (ISO proposal) | **active** | active (3.x) | unmaintained since 2010 |
+The difference that can be measured is compile time. One translation unit computing
+`speed = length / time`, gcc 16.0.1, `-O2 -std=c++23`, same host, 2026-09-12:
+
+| | compile time | preprocessed lines | generated code |
+|---|---|---|---|
+| raw `double` | 0.01 s | 7 | `divsd %xmm1, %xmm0; ret` |
+| **strong-types** (`si.hpp`) | 0.03 s | 7,659 | identical |
+| [mp-units](https://github.com/mpusz/mp-units) (`si.h` + `isq.h`) | 3.07 s | 145,896 | identical |
+
+The whole library is about 1,900 lines of headers with no dependencies beyond the standard library.
+What it does with them: dimensional analysis from exponent vectors, affine quantity points, scaled
+units with exact-or-refused integer conversions, `std::expected` checked arithmetic, and a
+`Strong<T, Tag>` wrapper that works around a vector or matrix type without demanding operators the
+type does not have.
+
+What it does not do, and where [mp-units](https://github.com/mpusz/mp-units) or
+[Au](https://github.com/aurora-opensource/au) are the right choice: hundreds of predefined units,
+unit symbols and text output, ISQ quantity kinds and hierarchies, unit-aware math functions,
+C++20 or C++14 support, and an ISO standardisation track.
 
 ### When to choose strong-types
 
-- You want **zero-dependency, minimal footprint** — drop a few headers into your project and go
-- You need `Strong<T, Tag>` with **non-arithmetic T** (vectors, quaternions, custom math types)
-- You prefer **explicit trait rules** you can read and extend over automatic dimension deduction
-- Your project already requires **C++23** and you want to leverage concepts, `<=>`, and `constexpr` throughout
-- You value **fast compile times** — ~1 500 LOC means negligible overhead
+- Compile time matters and you need a handful of quantities, not a catalogue
+- You wrap your own vector or matrix type and want only the operators it has
+- C++23 is available and you want a model you can read in one sitting
 
 ### When to choose something else
 
-- You need **hundreds of units** out of the box (mp-units, Au)
-- You are stuck on **C++14/17** (Au, nholthaus)
+- You need hundreds of units, symbols, or quantity kinds out of the box (mp-units, Au)
+- You are on C++14, C++17 or C++20 (Au, nholthaus/units, mp-units)
 
 ## Installation
 
