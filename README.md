@@ -397,7 +397,8 @@ This is the correct default — opt in only when the relationship is meaningful.
 
 ### Widening Integer Construction
 
-`Strong<uint64_t, Tag>` now accepts smaller integer types without explicit casting:
+`Strong`, `ScaledUnit` and `QuantityPoint` share one rule (`WideningIntegral<From, To>`): an integer
+representation accepts any integer type of the same or smaller size without a cast.
 
 ```cpp
 struct MyTag {};

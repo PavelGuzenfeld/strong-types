@@ -191,6 +191,13 @@ concept CanAdd = requires(A a, B b) { a + b; };
 static_assert(!CanAdd<Dummy, Dummy2>, "tags without a sum rule must not add");
 static_assert(CanAdd<Dummy, Dummy>, "tags with a sum rule add");
 
+static_assert(strong_types::WideningIntegral<int, long long>, "int widens to long long");
+static_assert(strong_types::WideningIntegral<int, unsigned>, "same size counts as widening, sign is not checked");
+static_assert(!strong_types::WideningIntegral<long long, int>, "long long does not narrow into int");
+static_assert(!strong_types::WideningIntegral<double, long long>, "floating point never widens into an integer");
+static_assert(!strong_types::WideningIntegral<int, double>, "integers do not widen into floating point");
+static_assert(!strong_types::WideningIntegral<int, int>, "an exact match is not widening");
+
 static_assert(
     [] {
         Dummy d{4.0f};

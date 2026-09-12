@@ -55,7 +55,13 @@ struct ScaledUnit
     }
 
     template <typename U>
-        requires(!std::same_as<std::remove_cvref_t<U>, T>)
+        requires WideningIntegral<U, T>
+    constexpr explicit ScaledUnit(U val) noexcept : value_(static_cast<T>(val))
+    {
+    }
+
+    template <typename U>
+        requires(!std::same_as<std::remove_cvref_t<U>, T> && !WideningIntegral<U, T>)
     explicit ScaledUnit(U && /*unused*/) // NOLINT(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
     {
         static_assert(always_false_v<U>, "narrowing/mismatched construction of ScaledUnit — cast to T first");

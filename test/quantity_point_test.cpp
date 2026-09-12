@@ -3,6 +3,8 @@
 #include "strong-types/si_literals.hpp"
 #include "strong-types/si_scaled_literals.hpp"
 
+#include <cstdint>
+
 using namespace strong_types;
 using namespace strong_types::si_literals;
 using namespace strong_types::si_scaled_literals;
@@ -145,6 +147,10 @@ static_assert(
         return diff.get() == 70;
     }(),
     "integer QuantityPoint subtraction");
+
+static_assert(QuantityPoint<std::int64_t, LengthTag>{42}.get() == 42, "int literal widens into an int64 point");
+static_assert((QuantityPoint<std::int64_t, LengthTag>{42} - QuantityPoint<std::int64_t, LengthTag>{2}).get() == 40,
+              "widened points subtract");
 
 // ---- Compile-time negative test: Point + Point must NOT compile ----
 // Uses SFINAE concept check

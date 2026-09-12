@@ -24,6 +24,12 @@ concept Arithmetic = requires(T lhs, T rhs) {
     { lhs <=> rhs };
 };
 
+// Integral From has no more bits than integral To (int -> uint64_t, short -> long); signedness is not checked.
+template <typename From, typename To>
+concept WideningIntegral =
+    std::is_integral_v<To> && std::is_integral_v<std::remove_cvref_t<From>> &&
+    !std::same_as<std::remove_cvref_t<From>, To> && (sizeof(std::remove_cvref_t<From>) <= sizeof(To));
+
 template <typename T, typename Tag>
     requires std::is_default_constructible_v<T> && std::copy_constructible<T> && Arithmetic<T>
 struct Strong
@@ -38,18 +44,14 @@ struct Strong
     {
     }
 
-    // Allow widening integer conversions (e.g., int -> uint64_t, short -> long)
     template <typename U>
-        requires(!std::same_as<std::remove_cvref_t<U>, T> && std::is_integral_v<T> &&
-                 std::is_integral_v<std::remove_cvref_t<U>> && (sizeof(std::remove_cvref_t<U>) <= sizeof(T)))
+        requires WideningIntegral<U, T>
     constexpr explicit Strong(U value) noexcept : value_(static_cast<T>(value))
     {
     }
 
     template <typename U>
-        requires(!std::same_as<std::remove_cvref_t<U>, T> &&
-                 !(std::is_integral_v<T> && std::is_integral_v<std::remove_cvref_t<U>> &&
-                   (sizeof(std::remove_cvref_t<U>) <= sizeof(T))))
+        requires(!std::same_as<std::remove_cvref_t<U>, T> && !WideningIntegral<U, T>)
     explicit Strong(U && /*unused*/) // NOLINT(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
     {
         static_assert(always_false_v<U>,

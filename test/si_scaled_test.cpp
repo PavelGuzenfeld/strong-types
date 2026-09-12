@@ -156,6 +156,12 @@ static_assert(
 static_assert(Kilometers<double>{}.get() == 0.0, "default km is 0");
 static_assert(Milliseconds<double>{}.get() == 0.0, "default ms is 0");
 
+// ---- widening integer construction, same rule as Strong ----
+
+static_assert(Kilometers<std::int64_t>{42}.get() == 42, "int literal widens into int64 km");
+static_assert(std::is_same_v<decltype(Kilometers<std::int64_t>{42}.get()), std::int64_t>, "rep stays int64");
+static_assert(Milliseconds<std::uint32_t>{std::uint16_t{7}}.get() == 7, "uint16 widens into uint32 ms");
+
 // ---- integral conversions are exact or refused ----
 
 template <typename U>

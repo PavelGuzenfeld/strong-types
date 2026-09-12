@@ -28,7 +28,13 @@ struct QuantityPoint
     }
 
     template <typename U>
-        requires(!std::same_as<std::remove_cvref_t<U>, T>)
+        requires WideningIntegral<U, T>
+    constexpr explicit QuantityPoint(U value) noexcept : value_(static_cast<T>(value))
+    {
+    }
+
+    template <typename U>
+        requires(!std::same_as<std::remove_cvref_t<U>, T> && !WideningIntegral<U, T>)
     explicit QuantityPoint(U && /*unused*/) // NOLINT(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
     {
         static_assert(always_false_v<U>, "narrowing/mismatched construction of QuantityPoint — cast to T first");
