@@ -1,6 +1,7 @@
 // NOLINTBEGIN(readability-magic-numbers,readability-identifier-length) -- fuzz harness
 
 #include "strong-types/safe_math.hpp"
+#include "strong-types/si_scaled.hpp"
 
 #include <cstddef>
 #include <cstdint>

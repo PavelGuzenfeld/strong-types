@@ -1,7 +1,10 @@
 #pragma once
 
+#include "safe_math.hpp"
 #include "si.hpp"
+
 #include <ratio>
+#include <utility>
 
 namespace strong_types
 {
@@ -13,6 +16,27 @@ inline constexpr bool is_scaled_v = false;
 
 template <typename S>
 concept NotScaled = !is_scaled_v<std::remove_cvref_t<S>>;
+
+// ---- exact scale conversion ----
+
+// Integral reps convert only by an integer factor that fits T; anything else needs safe_to_base/safe_scale_cast.
+template <typename T, typename Ratio>
+concept ExactScale = std::floating_point<T> || (Ratio::den == 1 && std::in_range<T>(Ratio::num));
+
+// Integral overflow fails constant evaluation, or terminates at runtime.
+template <typename Ratio, typename T>
+    requires ExactScale<T, Ratio>
+[[nodiscard]] constexpr T rescale(T value) noexcept
+{
+    if constexpr (std::integral<T>)
+    {
+        return safe_multiply(value, static_cast<T>(Ratio::num)).value();
+    }
+    else
+    {
+        return value * static_cast<T>(Ratio::num) / static_cast<T>(Ratio::den);
+    }
+}
 
 // ---- ScaledUnit class ----
 
@@ -34,8 +58,7 @@ struct ScaledUnit
         requires(!std::same_as<std::remove_cvref_t<U>, T>)
     explicit ScaledUnit(U && /*unused*/) // NOLINT(cppcoreguidelines-missing-std-forward,google-explicit-constructor)
     {
-        static_assert(always_false_v<U>,
-                      "narrowing/mismatched construction of ScaledUnit — cast to T first");
+        static_assert(always_false_v<U>, "narrowing/mismatched construction of ScaledUnit — cast to T first");
     }
 
     constexpr ScaledUnit() noexcept = default;
@@ -45,18 +68,17 @@ struct ScaledUnit
         return value_;
     }
 
-    /// Convert to base unit_t<T, Tag>
     [[nodiscard]] constexpr unit_t<T, Tag> to_base() const noexcept
+        requires ExactScale<T, Ratio>
     {
-        return unit_t<T, Tag>{value_ * static_cast<T>(Ratio::num) / static_cast<T>(Ratio::den)};
+        return unit_t<T, Tag>{rescale<Ratio>(value_)};
     }
 
-    /// Convert to another scale
     template <typename TargetRatio>
+        requires ExactScale<T, std::ratio_divide<Ratio, TargetRatio>>
     [[nodiscard]] constexpr ScaledUnit<T, Tag, TargetRatio> in() const noexcept
     {
-        using F = std::ratio_divide<Ratio, TargetRatio>;
-        return ScaledUnit<T, Tag, TargetRatio>{value_ * static_cast<T>(F::num) / static_cast<T>(F::den)};
+        return ScaledUnit<T, Tag, TargetRatio>{rescale<std::ratio_divide<Ratio, TargetRatio>>(value_)};
     }
 
     [[nodiscard]] auto operator<=>(const ScaledUnit &) const = default;
@@ -78,26 +100,25 @@ concept SameTagScaled = is_scaled_v<A> && is_scaled_v<B> && std::is_same_v<typen
 // ---- scale_cast: base unit_t → ScaledUnit (implicitly ratio<1>) ----
 
 template <typename TargetScaled, typename T, typename Tag>
-    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag>
+    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
+             ExactScale<T, std::ratio_divide<std::ratio<1>, typename TargetScaled::ratio_type>>
 [[nodiscard]] constexpr TargetScaled scale_cast(unit_t<T, Tag> base) noexcept
 {
     using TargetT = typename TargetScaled::value_type;
-    using R = typename TargetScaled::ratio_type;
-    return TargetScaled{static_cast<TargetT>(
-        base.get() * static_cast<T>(R::den) / static_cast<T>(R::num))};
+    using F = std::ratio_divide<std::ratio<1>, typename TargetScaled::ratio_type>;
+    return TargetScaled{static_cast<TargetT>(rescale<F>(base.get()))};
 }
 
 // ---- scale_cast: ScaledUnit → ScaledUnit (explicit scale conversion) ----
 
 template <typename TargetScaled, typename T, typename Tag, typename R>
-    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag>
+    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
+             ExactScale<T, std::ratio_divide<R, typename TargetScaled::ratio_type>>
 [[nodiscard]] constexpr TargetScaled scale_cast(ScaledUnit<T, Tag, R> from) noexcept
 {
     using TargetT = typename TargetScaled::value_type;
-    using TargetR = typename TargetScaled::ratio_type;
-    using F = std::ratio_divide<R, TargetR>;
-    return TargetScaled{static_cast<TargetT>(
-        from.get() * static_cast<T>(F::num) / static_cast<T>(F::den))};
+    using F = std::ratio_divide<R, typename TargetScaled::ratio_type>;
+    return TargetScaled{static_cast<TargetT>(rescale<F>(from.get()))};
 }
 
 // ---- unary negate ----
@@ -259,6 +280,94 @@ template <typename T, typename Tag, typename R>
 [[nodiscard]] constexpr auto operator<=>(const ScaledUnit<T, Tag, R> &lhs, const unit_t<T, Tag> &rhs)
 {
     return lhs.to_base().get() <=> rhs.get();
+}
+
+// ---- safe_to_base: ScaledUnit<int> → unit_t<int> with overflow and truncation check ----
+
+template <typename T, typename Tag, typename Ratio>
+    requires std::integral<T>
+[[nodiscard]] constexpr auto safe_to_base(ScaledUnit<T, Tag, Ratio> val)
+    -> std::expected<unit_t<T, Tag>, ArithmeticErrc>
+{
+    auto mul = safe_multiply(val.get(), static_cast<T>(Ratio::num));
+    if (!mul)
+    {
+        return std::unexpected{mul.error()};
+    }
+
+    auto den = static_cast<T>(Ratio::den);
+    if ((*mul % den) != T{0})
+    {
+        return std::unexpected{ArithmeticErrc::truncation};
+    }
+
+    auto div = safe_divide(*mul, den);
+    if (!div)
+    {
+        return std::unexpected{div.error()};
+    }
+    return unit_t<T, Tag>{*div};
+}
+
+// ---- safe_scale_cast: base unit_t<int> → ScaledUnit<int> (implicitly ratio<1>) ----
+
+template <typename TargetScaled, typename T, typename Tag>
+    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
+                 std::integral<typename TargetScaled::value_type>
+[[nodiscard]] constexpr auto safe_scale_cast(unit_t<T, Tag> base) -> std::expected<TargetScaled, ArithmeticErrc>
+{
+    using TargetT = typename TargetScaled::value_type;
+    using R = typename TargetScaled::ratio_type;
+
+    auto mul = safe_multiply(static_cast<TargetT>(base.get()), static_cast<TargetT>(R::den));
+    if (!mul)
+    {
+        return std::unexpected{mul.error()};
+    }
+
+    auto num = static_cast<TargetT>(R::num);
+    if ((*mul % num) != TargetT{0})
+    {
+        return std::unexpected{ArithmeticErrc::truncation};
+    }
+
+    auto div = safe_divide(*mul, num);
+    if (!div)
+    {
+        return std::unexpected{div.error()};
+    }
+    return TargetScaled{*div};
+}
+
+// ---- safe_scale_cast: ScaledUnit<int> → ScaledUnit<int> with overflow check ----
+
+template <typename TargetScaled, typename T, typename Tag, typename R>
+    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
+                 std::integral<typename TargetScaled::value_type>
+[[nodiscard]] constexpr auto safe_scale_cast(ScaledUnit<T, Tag, R> from) -> std::expected<TargetScaled, ArithmeticErrc>
+{
+    using TargetR = typename TargetScaled::ratio_type;
+    using F = std::ratio_divide<R, TargetR>;
+    using TargetT = typename TargetScaled::value_type;
+
+    auto mul = safe_multiply(static_cast<TargetT>(from.get()), static_cast<TargetT>(F::num));
+    if (!mul)
+    {
+        return std::unexpected{mul.error()};
+    }
+
+    auto den = static_cast<TargetT>(F::den);
+    if ((*mul % den) != TargetT{0})
+    {
+        return std::unexpected{ArithmeticErrc::truncation};
+    }
+
+    auto div = safe_divide(*mul, den);
+    if (!div)
+    {
+        return std::unexpected{div.error()};
+    }
+    return TargetScaled{*div};
 }
 
 // ---- type aliases ----

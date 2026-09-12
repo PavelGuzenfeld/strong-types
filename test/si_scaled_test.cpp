@@ -3,6 +3,8 @@
 #include "strong-types/si_scaled.hpp"
 #include "strong-types/si_scaled_literals.hpp"
 
+#include <cstdint>
+
 using namespace strong_types;
 using namespace strong_types::si_scaled_literals;
 using namespace strong_types::si_literals;
@@ -153,4 +155,27 @@ static_assert(
 
 static_assert(Kilometers<double>{}.get() == 0.0, "default km is 0");
 static_assert(Milliseconds<double>{}.get() == 0.0, "default ms is 0");
+
+// ---- integral conversions are exact or refused ----
+
+template <typename U>
+concept HasToBase = requires(U u) { u.to_base(); };
+template <typename U, typename R>
+concept HasIn = requires(U u) { u.template in<R>(); };
+template <typename Target, typename From>
+concept CanScaleCast = requires(From f) { scale_cast<Target>(f); };
+
+static_assert(Kilometers<int>{5}.to_base().get() == 5000, "int km -> m multiplies exactly");
+static_assert(!HasToBase<Grams<int>>, "int g -> kg would truncate, refused");
+static_assert(!HasToBase<KilometersPerHour<int>>, "int km/h -> m/s would truncate, refused");
+static_assert(HasToBase<Grams<double>>, "double g -> kg stays available");
+static_assert(!HasToBase<Weeks<std::int16_t>>, "week factor 604800 does not fit int16, refused");
+static_assert(HasToBase<Weeks<std::int32_t>>, "week factor fits int32");
+static_assert(Kilometers<int>{1}.in<std::milli>().get() == 1000000, "int km -> mm multiplies exactly");
+static_assert(!HasIn<Millimeters<int>, std::kilo>, "int mm -> km would truncate, refused");
+static_assert(scale_cast<Millimeters<int>>(unit_t<int, LengthTag>{2}).get() == 2000, "int m -> mm exact");
+static_assert(!CanScaleCast<Kilometers<int>, unit_t<int, LengthTag>>, "int m -> km would truncate, refused");
+static_assert(scale_cast<Minutes<int>>(Hours<int>{2}).get() == 120, "int hr -> min exact");
+static_assert(!CanScaleCast<Hours<int>, Minutes<int>>, "int min -> hr would truncate, refused");
+static_assert(CanScaleCast<Kilometers<double>, unit_t<double, LengthTag>>, "double m -> km stays available");
 // NOLINTEND(readability-magic-numbers,readability-identifier-length)

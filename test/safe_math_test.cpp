@@ -58,8 +58,7 @@ static_assert(safe_subtract(-5, -3).value() == -2, "-5 - (-3) = -2");
 
 // ---- safe_subtract: overflow ----
 
-static_assert(safe_subtract(INT_MAX, -1).error() == ArithmeticErrc::overflow,
-              "INT_MAX - (-1) overflows");
+static_assert(safe_subtract(INT_MAX, -1).error() == ArithmeticErrc::overflow, "INT_MAX - (-1) overflows");
 
 // ---- safe_subtract: underflow ----
 
@@ -113,6 +112,12 @@ static_assert(
         return !result.has_value() && result.error() == ArithmeticErrc::overflow;
     }(),
     "safe_to_base: 3000000 km overflows int");
+
+// ---- safe_to_base: truncation ----
+
+static_assert(safe_to_base(Grams<int>{500}).error() == ArithmeticErrc::truncation,
+              "safe_to_base: 500 g is not a whole kg");
+static_assert(safe_to_base(Grams<int>{3000}).value().get() == 3, "safe_to_base: 3000 g = 3 kg");
 
 // ---- safe_scale_cast from base: normal ----
 

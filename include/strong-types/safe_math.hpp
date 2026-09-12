@@ -1,8 +1,5 @@
 #pragma once
 
-#include "si.hpp"
-#include "si_scaled.hpp"
-
 #include <cmath>
 #include <concepts>
 #include <expected>
@@ -189,90 +186,6 @@ template <typename T>
         }
         return static_cast<T>(a / b);
     }
-}
-
-// ---- safe_to_base: ScaledUnit<int> → unit_t<int> with overflow check ----
-
-template <typename T, typename Tag, typename Ratio>
-    requires std::integral<T>
-[[nodiscard]] constexpr auto safe_to_base(ScaledUnit<T, Tag, Ratio> val)
-    -> std::expected<unit_t<T, Tag>, ArithmeticErrc>
-{
-    // to_base = value * num / den
-    auto mul = safe_multiply(val.get(), static_cast<T>(Ratio::num));
-    if (!mul)
-    {
-        return std::unexpected{mul.error()};
-    }
-    auto div = safe_divide(*mul, static_cast<T>(Ratio::den));
-    if (!div)
-    {
-        return std::unexpected{div.error()};
-    }
-    return unit_t<T, Tag>{*div};
-}
-
-// ---- safe_scale_cast: base unit_t<int> → ScaledUnit<int> (implicitly ratio<1>) ----
-
-template <typename TargetScaled, typename T, typename Tag>
-    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
-                 std::integral<typename TargetScaled::value_type>
-[[nodiscard]] constexpr auto safe_scale_cast(unit_t<T, Tag> base)
-    -> std::expected<TargetScaled, ArithmeticErrc>
-{
-    using TargetT = typename TargetScaled::value_type;
-    using R = typename TargetScaled::ratio_type;
-
-    auto mul = safe_multiply(static_cast<TargetT>(base.get()), static_cast<TargetT>(R::den));
-    if (!mul)
-    {
-        return std::unexpected{mul.error()};
-    }
-
-    auto num = static_cast<TargetT>(R::num);
-    if ((*mul % num) != TargetT{0})
-    {
-        return std::unexpected{ArithmeticErrc::truncation};
-    }
-
-    auto div = safe_divide(*mul, num);
-    if (!div)
-    {
-        return std::unexpected{div.error()};
-    }
-    return TargetScaled{*div};
-}
-
-// ---- safe_scale_cast: ScaledUnit<int> → ScaledUnit<int> with overflow check ----
-
-template <typename TargetScaled, typename T, typename Tag, typename R>
-    requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
-                 std::integral<typename TargetScaled::value_type>
-[[nodiscard]] constexpr auto safe_scale_cast(ScaledUnit<T, Tag, R> from)
-    -> std::expected<TargetScaled, ArithmeticErrc>
-{
-    using TargetR = typename TargetScaled::ratio_type;
-    using F = std::ratio_divide<R, TargetR>;
-    using TargetT = typename TargetScaled::value_type;
-
-    auto mul = safe_multiply(static_cast<TargetT>(from.get()), static_cast<TargetT>(F::num));
-    if (!mul)
-    {
-        return std::unexpected{mul.error()};
-    }
-
-    auto den = static_cast<TargetT>(F::den);
-    if ((*mul % den) != TargetT{0})
-    {
-        return std::unexpected{ArithmeticErrc::truncation};
-    }
-
-    auto div = safe_divide(*mul, den);
-    if (!div)
-    {
-        return std::unexpected{div.error()};
-    }
-    return TargetScaled{*div};
 }
 
 } // namespace strong_types

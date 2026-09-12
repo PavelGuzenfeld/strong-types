@@ -210,6 +210,7 @@ static_assert(diff.get() == 30.0);
 
 ```cpp
 #include "strong-types/safe_math.hpp"
+#include "strong-types/si_scaled.hpp"
 
 using namespace strong_types;
 
