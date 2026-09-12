@@ -21,7 +21,10 @@ concept NotScaled = !is_scaled_v<std::remove_cvref_t<S>>;
 
 // Integral reps convert only by an integer factor that fits T; anything else needs safe_to_base/safe_scale_cast.
 template <typename T, typename Ratio>
-concept ExactScale = std::floating_point<T> || (Ratio::den == 1 && std::in_range<T>(Ratio::num));
+concept ExactScale =
+    std::floating_point<T> || (Ratio::den == 1 && std::in_range<T>(Ratio::num)); // NOLINT(readability-magic-numbers)
+
+using base_ratio = std::ratio<1>; // NOLINT(readability-magic-numbers)
 
 // Integral overflow fails constant evaluation, or terminates at runtime.
 template <typename Ratio, typename T>
@@ -107,11 +110,11 @@ concept SameTagScaled = is_scaled_v<A> && is_scaled_v<B> && std::is_same_v<typen
 
 template <typename TargetScaled, typename T, typename Tag>
     requires is_scaled_v<TargetScaled> && std::is_same_v<typename TargetScaled::tag_type, Tag> &&
-             ExactScale<T, std::ratio_divide<std::ratio<1>, typename TargetScaled::ratio_type>>
+             ExactScale<T, std::ratio_divide<base_ratio, typename TargetScaled::ratio_type>>
 [[nodiscard]] constexpr TargetScaled scale_cast(unit_t<T, Tag> base) noexcept
 {
     using TargetT = typename TargetScaled::value_type;
-    using F = std::ratio_divide<std::ratio<1>, typename TargetScaled::ratio_type>;
+    using F = std::ratio_divide<base_ratio, typename TargetScaled::ratio_type>;
     return TargetScaled{static_cast<TargetT>(rescale<F>(base.get()))};
 }
 
