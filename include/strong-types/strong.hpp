@@ -270,7 +270,8 @@ concept ScalesRep = !std::is_integral_v<T> || std::is_integral_v<S>;
 // ---- scalar overloads ----
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { val *scalar; }
+    requires NotStrong<S> && ScalesRep<T, S> && (!MixedSignedness<T, S>) &&
+             requires(const T &val, S scalar) { val *scalar; }
 [[nodiscard]] constexpr auto operator*(const Strong<T, TAG> &lhs, S scalar)
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -284,7 +285,8 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { scalar *val; }
+    requires NotStrong<S> && ScalesRep<T, S> && (!MixedSignedness<T, S>) &&
+             requires(const T &val, S scalar) { scalar *val; }
 [[nodiscard]] constexpr auto operator*(S scalar, const Strong<T, TAG> &rhs)
 {
     if constexpr (std::is_arithmetic_v<T>)
@@ -298,7 +300,8 @@ template <typename T, typename TAG, Scalar S>
 }
 
 template <typename T, typename TAG, Scalar S>
-    requires NotStrong<S> && ScalesRep<T, S> && requires(const T &val, S scalar) { val / scalar; }
+    requires NotStrong<S> && ScalesRep<T, S> && (!MixedSignedness<T, S>) &&
+                 requires(const T &val, S scalar) { val / scalar; }
 [[nodiscard]] constexpr auto operator/(const Strong<T, TAG> &lhs, S scalar) -> scalar_div_result_t<Strong<T, TAG>, S>
 {
     if constexpr (std::is_arithmetic_v<T>)

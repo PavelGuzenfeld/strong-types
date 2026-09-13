@@ -80,6 +80,11 @@ Run these before pushing to avoid CI failures:
 # clang-tidy on changed files
 ./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
 
+# clang-tidy on a changed header directly: `.clang-tidy` has an empty HeaderFilterRegex,
+# so running it against a test/*.cpp catches nothing from include/. CI tidies each touched
+# header as its own translation unit — do the same locally:
+clang-tidy -p build include/strong-types/<changed>.hpp
+
 # cppcheck on changed files
 ./scripts/diff-cppcheck.sh origin/main
 
