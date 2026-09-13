@@ -338,6 +338,12 @@ static_assert((Count{5} * 2L).get() == 10, "int rep * integral scalar keeps the 
 static_assert(CanDivide<float, Dummy>, "scalar / a tag with a void-quotient rule divides");
 static_assert(!CanDivide<float, Dummy2>, "scalar / a tag without a quotient rule is refused, not a hard error");
 static_assert(!CanDivide<unsigned, Count>, "unsigned scalar / signed rep would mix signedness, refused");
+
+using UCount = strong_types::Strong<unsigned, Dummy>;
+static_assert(!CanMultiply<UCount, int>, "unsigned rep * signed scalar would wrap on a negative value, refused");
+static_assert(!CanMultiply<int, UCount>, "signed scalar * unsigned rep would wrap on a negative value, refused");
+static_assert(!CanDivide<UCount, int>, "unsigned rep / signed scalar would wrap on a negative value, refused");
+static_assert((UCount{3} * 2u).get() == 6, "unsigned rep * unsigned scalar keeps the unsigned rep");
 static_assert(!std::three_way_comparable<Displacement>, "an unordered T gives an unordered Strong");
 static_assert(std::equality_comparable<Displacement>, "Vec2 == Vec2 exists, so Displacement == Displacement exists");
 

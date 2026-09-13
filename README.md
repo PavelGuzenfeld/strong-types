@@ -92,7 +92,9 @@ Different representations promote to their `std::common_type_t`. `unit_t<float, 
 `unit_t<double, LengthTag>` is `unit_t<double, LengthTag>` in either order.
 
 Signed and unsigned integers do not mix. `unit_t<int, LengthTag> + unit_t<unsigned, LengthTag>` does
-not compile; the usual conversions would turn `-2 + 1u` into 4294967295.
+not compile; the usual conversions would turn `-2 + 1u` into 4294967295. The same rule covers a scalar:
+`unit_t<unsigned, LengthTag>{3} * -1` does not compile either, since `-1` is a signed `int` that would
+wrap the unsigned rep to 4294967293. Scale an unsigned quantity with an unsigned literal (`* 2u`).
 
 An integer quantity refuses a fractional scalar. `unit_t<int, LengthTag>{5} * 0.5` does not compile.
 Cast to a floating representation first.
@@ -174,7 +176,8 @@ static_assert(to_timespec(from_timespec_as_ns(ts)).tv_nsec == 123'456'789L);
 ```
 
 `from_chrono`, `from_timespec` and `from_timeval` return double seconds. At epoch magnitude a double
-cannot hold the low nanoseconds; use `from_timespec_as_ns` or `from_timeval_as_us` when that matters.
+cannot hold the low nanoseconds; use `from_chrono_as`, `from_timespec_as_ns` or `from_timeval_as_us`
+when that matters.
 
 Every other bridge keeps an integral representation integral. `to_timespec` and `to_timeval` accept
 any time unit, round to the nearest nanosecond or microsecond, and keep `tv_nsec` in `[0, 1e9)` for
