@@ -49,7 +49,7 @@ in one sitting. Pick something else when you need a catalogue of units, or you a
 include(FetchContent)
 FetchContent_Declare(strong-types
     GIT_REPOSITORY https://github.com/PavelGuzenfeld/strong-types.git
-    GIT_TAG v1.2.2
+    GIT_TAG v1.2.3
 )
 FetchContent_MakeAvailable(strong-types)
 
